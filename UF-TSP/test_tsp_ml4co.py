@@ -35,12 +35,19 @@ NUM_NEIGHBORS = -1  # -1 for dense
 
 # Dataset Configuration
 USE_ML4CO = True  # Set to True to use ML4CO datasets
-ML4CO_TEST_DATASET = "../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
-# Alternative datasets from ML4CO-Bench-101:
-# "../ML4CO-Bench-101/test_dataset/tsp/tsp20_concorde_3.839.txt"
-# "../ML4CO-Bench-101/test_dataset/tsp/tsp100_concorde_7.756.txt"
-# "../ML4CO-Bench-101/test_dataset/tsp/tsp500_concorde_16.546.txt"
-# "../ML4CO-Bench-101/test_dataset/tsp/tsp1000_concorde_23.118.txt"
+# Use ML4CO-Kit test datasets (default, already available)
+ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
+# Alternative ML4CO-Kit datasets:
+# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp20_uniform_16ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp100_uniform_4ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp500_uniform_4ins.txt"
+
+# ML4CO-Bench-101 test datasets (with optimal solutions):
+# "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+# "../../ML4CO-Bench-101/test_dataset/tsp/tsp20_concorde_3.839.txt"
+# "../../ML4CO-Bench-101/test_dataset/tsp/tsp100_concorde_7.756.txt"
+# "../../ML4CO-Bench-101/test_dataset/tsp/tsp500_concorde_16.546.txt"
+# "../../ML4CO-Bench-101/test_dataset/tsp/tsp1000_concorde_23.118.txt"
 
 # Model Configuration
 # This path matches the training code (train_tsp_ml4co.py saves to ./train_models/tsp_ml4co/)

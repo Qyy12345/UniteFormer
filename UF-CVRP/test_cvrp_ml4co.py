@@ -35,9 +35,17 @@ NUM_NEIGHBORS = -1  # -1 for dense
 
 # Dataset Configuration
 USE_ML4CO = True  # Set to True to use ML4CO datasets
-ML4CO_TEST_DATASET = "data/cvrp50_test_instances.pkl"
-# Alternative: Use text format if available
-# ML4CO_TEST_DATASET = "../ML4CO-Bench-101/test_dataset/cvrp/cvrp50.txt"
+# Use ML4CO-Kit test datasets (default, already available)
+ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp50_uniform_16ins.txt"
+# Alternative ML4CO-Kit datasets:
+# "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp100_uniform_4ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp500_uniform_4ins.txt"
+
+# ML4CO-Bench-101 test datasets (with optimal solutions):
+# "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp50_hgs-1s_10.366.txt"
+# "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp100_hgs-20s_15.563.txt"
+# "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp200_hgs-60s_19.630.txt"
+# "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp500_hgs-300s_37.154.txt"
 
 # Model Configuration
 # This path matches the training code (train_cvrp_ml4co.py saves to ./train_models/cvrp_ml4co/)
