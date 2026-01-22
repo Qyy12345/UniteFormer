@@ -50,10 +50,14 @@ ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uni
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp1000_concorde_23.118.txt"
 
 # Model Configuration
-# This path matches the training code (train_tsp_ml4co.py saves to ./train_models/tsp_ml4co/)
-MODEL_PATH = "./train_models/tsp_ml4co/epoch-1010.pkl"  # Path to trained model (after training with ML4CO)
-# Alternative: Use original pretrained model
-# MODEL_PATH = "./train_models/tsp50/epoch-1010.pkl"  # Original pretrained model
+# Default: Use original pretrained model
+MODEL_PATH = "./train_models/tsp50/checkpoint-1010.pt"  # Original pretrained model
+
+# Alternative: ML4CO fine-tuned models (trained with ML4CO datasets)
+# MODEL_PATH = "./train_models/tsp_ml4co/epoch-1010.pkl"  # ML4CO fine-tuned model
+
+# Other original pretrained model versions:
+# MODEL_PATH = "./train_models/tsp100/checkpoint-1010.pt"  # Original pretrained model (tsp100)
 
 # Testing Parameters
 env_params = {
