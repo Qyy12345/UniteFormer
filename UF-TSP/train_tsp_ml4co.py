@@ -1,7 +1,7 @@
 ##########################################################################################
-# Training UniteFormer on ML4CO TSP Dataset
+# Training UniteFormer on ML4CO TSP Dataset (with Data Generation)
 #
-# This script demonstrates how to train UniteFormer using ML4CO datasets
+# This script uses ML4CO-Kit's TSPDataGenerator to dynamically generate training data
 ##########################################################################################
 
 # Machine Environment Config
@@ -16,12 +16,21 @@ import sys
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, "..")  # for problem_def
 sys.path.insert(0, "../..")  # for utils
+sys.path.insert(0, "../../ML4CO-Kit")  # for ml4co_kit
 
 ##########################################################################################
 # import
 import logging
 from utils import create_logger, copy_all_src
 from TSPTrainer import TSPTrainer as Trainer
+
+# Import ML4CO-Kit data generator
+try:
+    from ml4co_kit import TSPDataGenerator, TSP_TYPE
+    ML4CO_AVAILABLE = True
+except ImportError:
+    print("Warning: ml4co_kit not available. Install with: pip install ml4co-kit")
+    ML4CO_AVAILABLE = False
 
 # Use ML4CO-enabled environment
 from TSPEnv_ML4CO import TSPEnvML4CO
@@ -33,11 +42,18 @@ from TSPEnv_ML4CO import TSPEnvML4CO
 TSP_SIZE = 50  # Options: 20, 50, 100, 500, 1000
 NUM_NEIGHBORS = -1  # -1 for dense, or specify number for sparse
 
-# Dataset Configuration
-USE_ML4CO = True  # Set to True to use ML4CO datasets
-ML4CO_DATASET_PATH = "../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
-# Alternative: Use your own ML4CO-format dataset
-# ML4CO_DATASET_PATH = "path/to/your/tsp_dataset.txt"
+# Data Generation Configuration
+USE_DATA_GENERATOR = True  # Use ML4CO-Kit's TSPDataGenerator
+GENERATOR_CONFIG = {
+    'distribution_type': TSP_TYPE.UNIFORM if ML4CO_AVAILABLE else None,
+    'nodes_num': TSP_SIZE,
+    'precision': 'float32',
+}
+
+# Alternative: Use existing dataset file
+# Set USE_DATA_GENERATOR = False and provide dataset path
+USE_DATASET_FILE = False
+DATASET_PATH = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
 
 # Training Parameters
 env_params = {
@@ -45,9 +61,10 @@ env_params = {
     'problem_size': TSP_SIZE,
     'pomo_size': TSP_SIZE,
     'num_neighbors': NUM_NEIGHBORS,
-    'data_path': ML4CO_DATASET_PATH if USE_ML4CO else None,
-    'use_ml4co': USE_ML4CO,  # Enable ML4CO dataset support
-    'ml4co_data_format': 'wrapper',  # Use ML4CO-Kit wrapper
+    'data_path': DATASET_PATH if USE_DATASET_FILE else None,
+    'use_ml4co': USE_DATASET_FILE,  # Only True if using dataset file
+    'use_data_generator': USE_DATA_GENERATOR,  # New parameter!
+    'generator_config': GENERATOR_CONFIG if USE_DATA_GENERATOR else None,
 }
 
 model_params = {
@@ -109,7 +126,7 @@ trainer_params = {
 
 logger_params = {
     'log_file': {
-        'desc': f'tsp{TSP_SIZE}_ml4co_train',  # Log description
+        'desc': f'tsp{TSP_SIZE}_ml4co_gen_train',  # Log description
         'filename': 'run_log'
     }
 }
@@ -118,7 +135,7 @@ logger_params = {
 # Custom Trainer with ML4CO Support
 class TSPTrainerML4CO(Trainer):
     """
-    Custom trainer that uses TSPEnvML4CO instead of TSPEnv.
+    Custom trainer that uses TSPEnvML4CO with data generation support.
     """
     def __init__(self, env_params, model_params, optimizer_params, trainer_params):
         # Use ML4CO-enabled environment
@@ -132,7 +149,36 @@ class TSPTrainerML4CO(Trainer):
         self.model = TSPModel(**model_params)
 
         # Rest of initialization follows parent class
-        super().__init__(env_params, model_params, optimizer_params, trainer_params)
+        Trainer.__init__(self, env_params, model_params, optimizer_params, trainer_params)
+
+
+##########################################################################################
+# Data Generator Helper (if using ML4CO-Kit)
+def create_data_generator(config):
+    """
+    Create a TSPDataGenerator instance with the given configuration.
+
+    Args:
+        config: Dictionary with generator configuration
+
+    Returns:
+        TSPDataGenerator instance or None
+    """
+    if not ML4CO_AVAILABLE:
+        print("ML4CO-Kit not available, cannot use data generator")
+        return None
+
+    try:
+        generator = TSPDataGenerator(
+            distribution_type=config.get('distribution_type', TSP_TYPE.UNIFORM),
+            nodes_num=config.get('nodes_num', 50),
+            precision=config.get('precision', 'float32'),
+        )
+        print(f"✓ Created TSPDataGenerator with {config['nodes_num']} nodes")
+        return generator
+    except Exception as e:
+        print(f"✗ Failed to create TSPDataGenerator: {e}")
+        return None
 
 
 ##########################################################################################
@@ -144,6 +190,23 @@ def main():
     create_logger(**logger_params)
     _print_config()
 
+    # Check ML4CO availability if using data generator
+    if USE_DATA_GENERATOR and not ML4CO_AVAILABLE:
+        print("\n" + "="*80)
+        print("ERROR: ML4CO-Kit is required for data generation")
+        print("="*80)
+        print("Please install: pip install ml4co-kit==0.3.3")
+        print("Or set USE_DATA_GENERATOR = False and use dataset file instead\n")
+        return
+
+    # Create data generator if needed
+    data_generator = None
+    if USE_DATA_GENERATOR:
+        data_generator = create_data_generator(GENERATOR_CONFIG)
+        if data_generator is None:
+            print("Failed to create data generator. Exiting.")
+            return
+
     # Use custom trainer with ML4CO support
     trainer = TSPTrainerML4CO(
         env_params=env_params,
@@ -152,13 +215,23 @@ def main():
         trainer_params=trainer_params
     )
 
+    # Attach data generator to environment if using
+    if USE_DATA_GENERATOR and data_generator is not None:
+        trainer.env.data_generator = data_generator
+        print(f"\n✓ Data generator attached to environment")
+
     copy_all_src(trainer.result_folder)
 
     print("\n" + "="*80)
-    print(f"Training UniteFormer on ML4CO TSP{tsp_size} Dataset")
+    print(f"Training UniteFormer on TSP{tsp_size}")
     print("="*80)
     print(f"Problem Size: {TSP_SIZE}")
-    print(f"Dataset Path: {ML4CO_DATASET_PATH}")
+    print(f"Data Generation: {'ENABLED' if USE_DATA_GENERATOR else 'DISABLED'}")
+    if USE_DATA_GENERATOR:
+        print(f"Generator: TSPDataGenerator")
+        print(f"Distribution: {GENERATOR_CONFIG['distribution_type']}")
+    elif USE_DATASET_FILE:
+        print(f"Dataset Path: {DATASET_PATH}")
     print(f"Batch Size: {trainer_params['train_batch_size']}")
     print(f"Epochs: {trainer_params['epochs']}")
     print("="*80 + "\n")
@@ -177,9 +250,9 @@ def _print_config():
     logger = logging.getLogger('root')
     logger.info('DEBUG_MODE: {}'.format(DEBUG_MODE))
     logger.info('USE_CUDA: {}, CUDA_DEVICE_NUM: {}'.format(USE_CUDA, CUDA_DEVICE_NUM))
-    logger.info('USE_ML4CO: {}'.format(USE_ML4CO))
-    if USE_ML4CO:
-        logger.info('ML4CO_DATASET_PATH: {}'.format(ML4CO_DATASET_PATH))
+    logger.info('USE_DATA_GENERATOR: {}'.format(USE_DATA_GENERATOR))
+    logger.info('USE_DATASET_FILE: {}'.format(USE_DATASET_FILE))
+    logger.info('ML4CO_AVAILABLE: {}'.format(ML4CO_AVAILABLE))
     [logger.info(g_key + "{}".format(globals()[g_key])) for g_key in globals().keys() if g_key.endswith('params')]
 
 

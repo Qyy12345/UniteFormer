@@ -55,6 +55,11 @@ class TSPEnvML4CO:
         self.use_ml4co = env_params.get('use_ml4co', False)
         self.ml4co_data_format = env_params.get('ml4co_data_format', 'wrapper')  # 'wrapper' or 'direct'
 
+        # Data generation support
+        self.use_data_generator = env_params.get('use_data_generator', False)
+        self.generator_config = env_params.get('generator_config', None)
+        self.data_generator = None  # Will be attached externally if needed
+
         self.raw_data_nodes = None
         self.raw_data_tours = None
 
@@ -90,8 +95,19 @@ class TSPEnvML4CO:
         self.batch_size = batch_size
 
         if self.mode == 'train':
-            # Training: Generate random problems
-            self.problems = get_random_problems(batch_size, self.problem_size)
+            # Training: Generate problems
+            if self.use_data_generator and self.data_generator is not None:
+                # Use ML4CO-Kit's TSPDataGenerator
+                try:
+                    # Generate instances
+                    instances = self.data_generator.generate_only_instance_for_us(batch_size)
+                    self.problems = torch.tensor(instances, dtype=torch.float32)
+                except Exception as e:
+                    print(f"Warning: Data generation failed ({e}), falling back to random generation")
+                    self.problems = get_random_problems(batch_size, self.problem_size)
+            else:
+                # Use original random problem generation
+                self.problems = get_random_problems(batch_size, self.problem_size)
         else:
             # Testing/Validation: Load from dataset
             if self.use_ml4co and self.ml4co_loader is not None:

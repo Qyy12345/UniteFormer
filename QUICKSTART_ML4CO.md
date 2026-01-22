@@ -1,6 +1,6 @@
-# Quick Start Guide: UniteFormer with ML4CO Datasets
+# Quick Start Guide: UniteFormer with ML4CO Data Generation
 
-This guide will help you quickly set up and run UniteFormer with ML4CO datasets.
+This guide will help you quickly set up and run UniteFormer with ML4CO data generation capabilities.
 
 ## Prerequisites
 
@@ -11,113 +11,160 @@ This guide will help you quickly set up and run UniteFormer with ML4CO datasets.
 ## Step 1: Install Dependencies
 
 ```bash
-# Install ML4CO-Kit
+# Install ML4CO-Kit (required for data generation)
 pip install ml4co-kit==0.3.3
 
 # Install other dependencies (if not already installed)
 pip install torch>=2.0.1 numpy==1.24.4 matplotlib==3.5.2 tqdm==4.67.1
 ```
 
-## Step 2: Prepare Datasets
+## Step 2: Choose Your Data Source
 
-### Option A: Use Existing ML4CO-Bench-101 Datasets
+UniteFormer now supports **three** ways to get training data:
 
-The ML4CO-Bench-101 folder already contains test datasets:
+### Option A: Data Generation (Recommended for Training) ⭐
+- ✅ **No dataset files needed**
+- ✅ **Dynamic data generation**
+- ✅ **Multiple distributions available**
+- ✅ **Same as ML4CO-Bench-101**
 
-```bash
-# TSP datasets are available at:
-ls ../../ML4CO-Bench-101/test_dataset/tsp/
+### Option B: Existing Dataset Files
+- Use ML4CO-Kit test datasets
+- Use ML4CO-Bench-101 datasets (need to download)
 
-# Available files:
-# - tsp20_concorde_3.839.txt
-# - tsp50_concorde_5.688.txt
-# - tsp100_concorde_7.756.txt
-# - tsp500_concorde_16.546.txt
-# - tsp1000_concorde_23.118.txt
-```
+### Option C: Original Random Generation
+- UniteFormer's original method
+- Good for quick testing
 
-### Option B: Download from Hugging Face
+## Step 3: Quick Test Run (Recommended for Testing)
 
-```bash
-# For more datasets, visit:
-# https://huggingface.co/datasets/ML4CO/ML4CO-Bench-101-SL
-
-# Download training datasets
-# Download testing datasets
-# Download cross datasets
-```
-
-## Step 3: Quick Test Run
-
-### Test TSP with ML4CO Dataset
+If you have pretrained models, you can test immediately:
 
 ```bash
 cd UniteFormer/UF-TSP
 
-# Edit the test script to use ML4CO dataset
+# Edit test script
 nano test_tsp_ml4co.py
 ```
 
-Update these lines in the file:
+Update these lines:
 
 ```python
 # Line ~33: Set problem size
 TSP_SIZE = 50
 
-# Line ~38: Set ML4CO dataset path (relative to UF-TSP folder)
-ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
-
-# Line ~37: Set USE_ML4CO to True
+# Line ~40: Use existing dataset from ML4CO-Kit
 USE_ML4CO = True
+ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
 
-# Line ~46: Set model path (use pretrained or train your own)
+# Line ~46: Set model path (need pretrained model)
 MODEL_PATH = "./train_models/tsp50/epoch-1010.pkl"
 ```
 
-Run the test:
-
+Run test:
 ```bash
 python test_tsp_ml4co.py
 ```
 
-**Note:** If you don't have a pretrained model, you need to train first (Step 4).
+**Note:** If you don't have a pretrained model, go to Step 4 to train one.
 
-## Step 4: Train UniteFormer with ML4CO Data
+## Step 4: Train with Data Generation (Recommended)
 
-### Train TSP Model
+This is the **easiest way** to train UniteFormer!
+
+### TSP Training
 
 ```bash
 cd UniteFormer/UF-TSP
 
-# Edit training script
-nano train_tsp_ml4co.py
+# The script is already configured to use data generation
+# Just verify these settings in train_tsp_ml4co.py:
 ```
 
-Configure:
+Configuration in `train_tsp_ml4co.py`:
 
 ```python
-# Line ~28: Set problem size
-TSP_SIZE = 50
+# Line ~42: Problem size
+TSP_SIZE = 50  # Options: 20, 50, 100, 500, 1000
 
-# Line ~35: Enable ML4CO
-USE_ML4CO = True
+# Line ~46: Enable data generation (already set!)
+USE_DATA_GENERATOR = True
 
-# Line ~36: Set dataset path
-ML4CO_DATASET_PATH = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+# Line ~47-51: Generator config
+GENERATOR_CONFIG = {
+    'distribution_type': TSP_TYPE.UNIFORM,  # UNIFORM, GAUSSIAN, CLUSTER
+    'nodes_num': TSP_SIZE,
+    'precision': 'float32',
+}
 
-# Line ~52: Adjust batch size based on GPU memory
-'train_batch_size': 128,  # Reduce if you get CUDA out of memory
+# Line ~55: Dataset file not needed
+USE_DATASET_FILE = False
 ```
 
 Start training:
-
 ```bash
 python train_tsp_ml4co.py
 ```
 
-Training will take several hours. Models are saved periodically to `train_models/tsp_ml4co/`.
+### CVRP Training
 
-## Step 5: Test Your Trained Model
+```bash
+cd UniteFormer/UF-CVRP
+
+# Verify settings in train_cvrp_ml4co.py
+```
+
+Configuration:
+
+```python
+# Line ~42: Problem size
+CVRP_SIZE = 50
+
+# Line ~46: Enable data generation
+USE_DATA_GENERATOR = True
+
+# Line ~47-52: Generator config
+GENERATOR_CONFIG = {
+    'distribution_type': CVRP_TYPE.UNIFORM,
+    'nodes_num': CVRP_SIZE,
+    'capacity': 40.0,  # Vehicle capacity
+    'precision': 'float32',
+}
+```
+
+Start training:
+```bash
+python train_cvrp_ml4co.py
+```
+
+## Step 5: Train with Dataset Files (Alternative)
+
+If you prefer to use dataset files:
+
+### 1. Use ML4CO-Kit Test Datasets
+
+```python
+# In train_tsp_ml4co.py:
+USE_DATA_GENERATOR = False
+USE_DATASET_FILE = True
+DATASET_PATH = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
+```
+
+### 2. Download ML4CO-Bench-101 Datasets
+
+Visit: https://huggingface.co/datasets/ML4CO/ML4CO-Bench-101-SL
+
+Download test datasets and place in:
+```
+ML4CO-Bench-101/test_dataset/tsp/
+```
+
+Then update path:
+```python
+DATASET_PATH = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+```
+
+## Step 6: Test Your Trained Model
 
 Once training is complete:
 
@@ -131,41 +178,62 @@ MODEL_PATH = "./train_models/tsp_ml4co/epoch-1010.pkl"
 python test_tsp_ml4co.py
 ```
 
-## Step 6: CVRP (Optional)
-
-For CVRP problems, follow similar steps:
-
-```bash
-cd UniteFormer/UF-CVRP
-
-# Edit train_cvrp_ml4co.py or test_cvrp_ml4co.py
-# Configure dataset path and parameters
-# Run training or testing
-```
-
 ## Configuration Quick Reference
 
 ### Minimal Working Configuration
 
-**For testing TSP50:**
+**For training TSP50 with data generation (Recommended):**
 
 ```python
 TSP_SIZE = 50
-USE_ML4CO = True
-ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
-MODEL_PATH = "./train_models/tsp50/epoch-1010.pkl"
+USE_DATA_GENERATOR = True
+GENERATOR_CONFIG = {
+    'distribution_type': TSP_TYPE.UNIFORM,
+    'nodes_num': TSP_SIZE,
+}
+train_batch_size = 128  # Adjust based on GPU memory
 ```
 
-**For training TSP50 (quick test):**
+**For training TSP50 with dataset file:**
 
 ```python
 TSP_SIZE = 50
-USE_ML4CO = True
-ML4CO_DATASET_PATH = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
-'train_batch_size': 64
-'epochs': 100  # Reduced for quick testing
-'train_episodes': 1000
+USE_DATA_GENERATOR = False
+USE_DATASET_FILE = True
+DATASET_PATH = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
+train_batch_size = 128
 ```
+
+**For quick testing (few epochs):**
+
+```python
+TSP_SIZE = 50
+USE_DATA_GENERATOR = True
+train_batch_size = 64
+epochs = 100  # Reduced for quick testing
+train_episodes = 1000
+```
+
+## Data Distribution Options
+
+### TSP
+- `TSP_TYPE.UNIFORM`: Random uniform distribution (default)
+- `TSP_TYPE.GAUSSIAN`: Gaussian/Normal distribution
+- `TSP_TYPE.CLUSTER`: Clustered distribution
+
+### CVRP
+- `CVRP_TYPE.UNIFORM`: Random uniform distribution (default)
+- `CVRP_TYPE.GAUSSIAN`: Gaussian distribution
+
+## Advantages of Data Generation
+
+| Feature | Data Generation | Dataset Files |
+|---------|----------------|---------------|
+| **Setup** | ✅ No download needed | ❌ Need to download datasets |
+| **Storage** | ✅ Minimal storage | ❌ Large files required |
+| **Flexibility** | ✅ Change distributions easily | ❌ Fixed distribution |
+| **Consistency** | ✅ Same as ML4CO-Bench-101 | ✅ If using ML4CO datasets |
+| **Reproducibility** | ✅ Set random seed | ✅ Deterministic files |
 
 ## Common Issues and Solutions
 
@@ -179,44 +247,53 @@ pip install ml4co-kit==0.3.3
 ### Issue 2: CUDA out of memory
 
 ```python
-# Reduce batch size in training/testing scripts:
+# Reduce batch size in training scripts:
 'train_batch_size': 64  # or 32, 16, etc.
-'test_batch_size': 1
 ```
 
-### Issue 3: File not found
+### Issue 3: Data generation fails
+
+**Solution:** Script automatically falls back to random generation. Check logs for:
+```
+Warning: Data generation failed (...), falling back to random generation
+```
+
+### Issue 4: File not found
 
 ```bash
 # Check dataset path is correct
 # Use relative path from UF-TSP or UF-CVRP folder
-# Example: "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+# Example: "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
 ```
 
-### Issue 4: No pretrained model available
+### Issue 5: No pretrained model available
 
 ```bash
 # Train your own model first using train_tsp_ml4co.py
-# Or use original UniteFormer pretrained models (may work with ML4CO data)
+# With data generation, this is very easy!
+python train_tsp_ml4co.py
 ```
 
 ## Next Steps
 
-1. **Experiment with different problem sizes:**
+1. **Experiment with different distributions:**
+   ```python
+   # Try GAUSSIAN instead of UNIFORM
+   'distribution_type': TSP_TYPE.GAUSSIAN
+   ```
+
+2. **Try different problem sizes:**
    - TSP: 20, 50, 100, 500, 1000
    - CVRP: 20, 50, 100
 
-2. **Try different datasets:**
-   - ML4CO-Bench-101 provides multiple distributions
-   - Compare performance across datasets
+3. **Compare with baselines:**
+   - Use same data generation as ML4CO-Bench-101
+   - Compare performance metrics
 
-3. **Hyperparameter tuning:**
+4. **Hyperparameter tuning:**
    - Learning rate
    - Batch size
    - Model architecture
-
-4. **Compare with baselines:**
-   - Use ML4CO-Bench-101 evaluation protocols
-   - Compare with other methods in the benchmark
 
 ## Example Workflow
 
@@ -227,46 +304,57 @@ pip install ml4co-kit==0.3.3
 # 2. Navigate to TSP folder
 cd UniteFormer/UF-TSP
 
-# 3. Quick test run (if you have pretrained model)
-python test_tsp_ml4co.py
-
-# 4. Train model with ML4CO data
+# 3. Train with data generation (easiest!)
 python train_tsp_ml4co.py
 
-# 5. Test trained model
+# 4. Test trained model
 python test_tsp_ml4co.py
 
-# 6. Check results in log files
+# 5. Check results
 ls -l result_folder/
 ```
 
 ## Performance Expectations
 
-Based on ML4CO-Bench-101:
+Based on ML4CO-Bench-101 with **UNIFORM distribution**:
 
-| Problem | Size | Optimal | Typical ML Solution | UniteFormer Target |
-|---------|------|---------|---------------------|-------------------|
-| TSP     | 20   | ~3.84   | ~3.85-3.90          | ~3.85             |
-| TSP     | 50   | ~5.69   | ~5.70-5.75          | ~5.70             |
-| TSP     | 100  | ~7.76   | ~7.77-7.85          | ~7.78             |
-| TSP     | 500  | ~16.55  | ~16.60-16.80        | ~16.60            |
-| TSP     | 1000 | ~23.12  | ~23.20-23.50        | ~23.25            |
+| Problem | Size | Optimal | UniteFormer Target |
+|---------|------|---------|-------------------|
+| TSP     | 20   | ~3.84   | ~3.85             |
+| TSP     | 50   | ~5.69   | ~5.70             |
+| TSP     | 100  | ~7.76   | ~7.78             |
+| TSP     | 500  | ~16.55  | ~16.60            |
+| TSP     | 1000 | ~23.12  | ~23.25            |
 
 *Values are average tour lengths. Lower is better.*
+
+**Tip:** Use data generation to match ML4CO-Bench-101 training setup!
+
+## Advanced: Mixing Data Sources
+
+You can even mix data sources during training:
+
+```python
+# Epoch 1-500: Use UNIFORM distribution
+GENERATOR_CONFIG = {'distribution_type': TSP_TYPE.UNIFORM, ...}
+
+# Epoch 501-1000: Switch to GAUSSIAN
+GENERATOR_CONFIG = {'distribution_type': TSP_TYPE.GAUSSIAN, ...}
+```
 
 ## Additional Resources
 
 - **Full Documentation:** See `README_ML4CO_INTEGRATION.md`
+- **Data Generation Guide:** See `DATA_GENERATION_GUIDE.md`
 - **ML4CO-Bench-101:** https://github.com/Thinklab-SJTU/ML4CO-Bench-101
 - **ML4CO-Kit:** https://github.com/Thinklab-SJTU/ML4CO-Kit
-- **Original UniteFormer:** Check original repository
 
 ## Support
 
 For issues specific to:
-- **ML4CO datasets:** Check ML4CO-Bench-101 repository
-- **Data loading:** Check ML4CO-Kit documentation
-- **UniteFormer model:** Check original UniteFormer repository
+- **Data generation:** Check ML4CO-Kit documentation
+- **UniteFormer model:** Check original repository
+- **This integration:** Check `MODIFICATIONS_SUMMARY.md`
 
 ---
 
@@ -274,7 +362,9 @@ For issues specific to:
 
 ```bash
 cd UniteFormer/UF-TSP
-python test_tsp_ml4co.py
+python train_tsp_ml4co.py
 ```
+
+**No datasets needed!** 🚀
 
 Good luck with your experiments!

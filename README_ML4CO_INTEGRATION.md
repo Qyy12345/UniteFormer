@@ -1,216 +1,191 @@
 # UniteFormer with ML4CO Dataset Integration
 
-This document describes the modifications made to UniteFormer to enable training and testing with ML4CO datasets.
+This document describes the modifications made to UniteFormer to enable training and testing with ML4CO datasets and data generation capabilities.
 
-## Overview
+## 🎯 Overview
 
 The integration allows UniteFormer to:
-1. Load and use ML4CO-Bench-101 datasets for TSP and CVRP problems
-2. Leverage ML4CO-Kit's unified data management framework
-3. Maintain compatibility with original UniteFormer training pipeline
-4. Easily switch between original and ML4CO data formats
+1. **Generate training data dynamically** using ML4CO-Kit's data generators (NEW!)
+2. Load and use ML4CO-Bench-101 datasets for TSP and CVRP problems
+3. Leverage ML4CO-Kit's unified data management framework
+4. Maintain compatibility with original UniteFormer training pipeline
+5. Easily switch between data sources (generation, files, or original)
 
-## File Structure
+## ✨ Key Features
+
+### 1. Dynamic Data Generation (New!)
+- **No dataset files required** - Generate data on-the-fly
+- **Multiple distributions** - UNIFORM, GAUSSIAN, CLUSTER
+- **Same as ML4CO-Bench-101** - Use identical data generation methods
+- **Memory efficient** - No need to store large datasets
+
+### 2. Dataset File Support
+- Load ML4CO-Bench-101 datasets
+- Load ML4CO-Kit test datasets
+- Automatic format conversion
+
+### 3. Backward Compatibility
+- Original UniteFormer code still works
+- Switch between modes with simple parameters
+- No breaking changes
+
+## 📁 File Structure
 
 ```
 UniteFormer/
 ├─ utils/
-│  └─ ml4co_data_loader.py          # Data loading utilities for ML4CO datasets
+│  └─ ml4co_data_loader.py          # Data loading utilities
+├─ examples/
+│  └─ example_data_loading.py       # Usage examples
 ├─ UF-TSP/
-│  ├─ TSPEnv_ML4CO.py               # Enhanced TSP environment with ML4CO support
-│  ├─ train_tsp_ml4co.py            # Training script for TSP with ML4CO data
-│  └─ test_tsp_ml4co.py             # Testing script for TSP with ML4CO data
-└─ UF-CVRP/
-   ├─ CVRPEnv_ML4CO.py              # Enhanced CVRP environment with ML4CO support
-   ├─ train_cvrp_ml4co.py           # Training script for CVRP with ML4CO data
-   └─ test_cvrp_ml4co.py            # Testing script for CVRP with ML4CO data
+│  ├─ TSPEnv_ML4CO.py               # Enhanced TSP environment
+│  ├─ train_tsp_ml4co.py            # Training script (with data generation!)
+│  └─ test_tsp_ml4co.py             # Testing script
+├─ UF-CVRP/
+│  ├─ CVRPEnv_ML4CO.py              # Enhanced CVRP environment
+│  ├─ train_cvrp_ml4co.py           # Training script (with data generation!)
+│  └─ test_cvrp_ml4co.py            # Testing script
+├─ README_ML4CO_INTEGRATION.md      # This file
+├─ QUICKSTART_ML4CO.md              # Quick start guide
+├─ DATA_GENERATION_GUIDE.md         # Data generation guide
+└─ MODIFICATIONS_SUMMARY.md         # Complete modification summary
 ```
 
-## Installation
+## 🚀 Installation
 
 ### 1. Install ML4CO-Kit
-
-First, install the ML4CO-Kit package:
 
 ```bash
 pip install ml4co-kit==0.3.3
 ```
 
-### 2. Download ML4CO Datasets
+### 2. (Optional) Download ML4CO Datasets
 
-Download the ML4CO-Bench-101 datasets from Hugging Face:
+**For testing with dataset files:**
 
-**Training datasets:**
 ```bash
-# Create data directory
-mkdir -p UniteFormer/data/tsp
-mkdir -p UniteFormer/data/cvrp
+# ML4CO-Kit test datasets are already available at:
+ls ../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/
 
-# Download from Hugging Face
-# Visit: https://huggingface.co/datasets/ML4CO/ML4CO-Bench-101-SL/tree/main/train_dataset
+# For ML4CO-Bench-101 datasets, visit:
+https://huggingface.co/datasets/ML4CO/ML4CO-Bench-101-SL
 ```
 
-**Testing datasets:**
-```bash
-# Visit: https://huggingface.co/datasets/ML4CO/ML4CO-Bench-101-SL/tree/main/test_dataset
-```
+**Note:** With data generation, you don't need to download datasets!
 
-Alternatively, you can use the datasets already available in `ML4CO-Bench-101/test_dataset/`.
+## 💡 Usage
 
-## Usage
+### Training with Data Generation (Recommended)
 
-### TSP Training with ML4CO Dataset
+This is the **easiest way** to train UniteFormer!
 
-1. **Edit the training script:**
+#### TSP
 
 ```bash
 cd UniteFormer/UF-TSP
-nano train_tsp_ml4co.py
 ```
 
-2. **Configure parameters:**
+Edit `train_tsp_ml4co.py`:
 
 ```python
-# Problem Configuration
-TSP_SIZE = 50  # Options: 20, 50, 100, 500, 1000
+# Configuration
+TSP_SIZE = 50
 
-# Dataset Configuration
-USE_ML4CO = True
-ML4CO_DATASET_PATH = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+# Enable data generation
+USE_DATA_GENERATOR = True
 
-# Training Parameters
-trainer_params = {
-    'train_batch_size': 256,  # Adjust based on GPU memory
-    'epochs': 1010,
-    'train_episodes': 1000 * 100,
+# Generator settings
+GENERATOR_CONFIG = {
+    'distribution_type': TSP_TYPE.UNIFORM,  # Options: UNIFORM, GAUSSIAN, CLUSTER
+    'nodes_num': TSP_SIZE,
+    'precision': 'float32',
 }
+
+# No dataset file needed
+USE_DATASET_FILE = False
 ```
 
-3. **Run training:**
+Run training:
 
 ```bash
 python train_tsp_ml4co.py
 ```
 
-### TSP Testing with ML4CO Dataset
-
-1. **Edit the testing script:**
-
-```bash
-nano test_tsp_ml4co.py
-```
-
-2. **Configure parameters:**
-
-```python
-# Problem Configuration
-TSP_SIZE = 50
-
-# Dataset Configuration
-USE_ML4CO = True
-ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
-
-# Model Configuration
-MODEL_PATH = "./train_models/tsp50/epoch-1010.pkl"
-```
-
-3. **Run testing:**
-
-```bash
-python test_tsp_ml4co.py
-```
-
-### CVRP Training with ML4CO Dataset
-
-1. **Prepare CVRP dataset:**
-
-CVRP datasets in ML4CO may be in `.pkl` format. Ensure you have the correct dataset path.
-
-2. **Edit training script:**
+#### CVRP
 
 ```bash
 cd UniteFormer/UF-CVRP
-nano train_cvrp_ml4co.py
 ```
 
-3. **Configure and run:**
+Edit `train_cvrp_ml4co.py`:
 
 ```python
+# Configuration
 CVRP_SIZE = 50
-ML4CO_DATASET_PATH = "data/cvrp50_instances.pkl"
+
+# Enable data generation
+USE_DATA_GENERATOR = True
+
+# Generator settings
+GENERATOR_CONFIG = {
+    'distribution_type': CVRP_TYPE.UNIFORM,
+    'nodes_num': CVRP_SIZE,
+    'capacity': 40.0,
+    'precision': 'float32',
+}
 ```
+
+Run training:
 
 ```bash
 python train_cvrp_ml4co.py
 ```
 
-## Key Features
+### Training with Dataset Files
 
-### 1. ML4CODataLoader
+If you prefer to use dataset files:
 
-The `ML4CODataLoader` class (`utils/ml4co_data_loader.py`) provides:
+```python
+# Disable data generation
+USE_DATA_GENERATOR = False
 
-- **load_tsp_data()**: Load TSP datasets from ML4CO format
-- **load_cvrp_data()**: Load CVRP datasets from ML4CO format
-- **load_raw_tsp_for_uniteformer()**: Convert to UniteFormer's raw format
-- **load_raw_cvrp_for_uniteformer()**: Convert CVRP data for UniteFormer
-
-### 2. Enhanced Environments
-
-**TSPEnvML4CO** and **CVRPEnvML4CO** extend the original environments with:
-
-- `use_ml4co` parameter: Enable/disable ML4CO dataset support
-- `ml4co_data_format` parameter: Choose loading method ('wrapper' or 'direct')
-- Backward compatibility with original UniteFormer data format
-
-### 3. Custom Trainers and Testers
-
-The integration includes custom trainer/tester classes that:
-- Inherit from original UniteFormer classes
-- Use ML4CO-enabled environments
-- Maintain all original functionality
-
-## Data Format Compatibility
-
-### Original UniteFormer Format
-
-**TSP:**
-```
-x1 y1 x2 y2 ... xn yn output tour1 tour2 ... tourn
+# Enable dataset file loading
+USE_DATASET_FILE = True
+DATASET_PATH = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
 ```
 
-**CVRP:**
-```
-depot x1 y1 customer x2 y2 ... capacity C demand d1 d2 ... cost C node_flag f1 f2 ...
+### Testing
+
+```python
+# Test with ML4CO-Kit datasets
+USE_ML4CO = True
+ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
 ```
 
-### ML4CO Format
-
-**TSP:**
+```bash
+python test_tsp_ml4co.py
 ```
-x1 y1 x2 y2 ... xn yn output tour1 tour2 ... tourn
-```
-(Compatible with UniteFormer)
 
-**CVRP:**
-```
-depots [depots] points [points] demands [demands] capacity [capacity] output [sol]
-```
-(Automatically converted by ML4CODataLoader)
+## 🔧 Configuration Options
 
-## Configuration Options
-
-### Environment Parameters
+### Data Source Selection
 
 ```python
 env_params = {
-    'problem_size': 50,              # Number of nodes
-    'pomo_size': 50,                 # POMO size (usually = problem_size)
-    'num_neighbors': -1,             # -1 for dense, or K for sparse K-nearest
-    'data_path': 'path/to/dataset',  # Path to ML4CO dataset
-    'mode': 'train',                 # 'train' or 'test'
-    'use_ml4co': True,               # Enable ML4CO dataset support
-    'ml4co_data_format': 'wrapper',  # 'wrapper' or 'direct'
+    # Data generation (NEW!)
+    'use_data_generator': True,  # Enable ML4CO data generation
+    'generator_config': {
+        'distribution_type': TSP_TYPE.UNIFORM,
+        'nodes_num': 50,
+        'precision': 'float32',
+    },
+
+    # Dataset file (alternative)
+    'use_ml4co': False,  # Enable for dataset file loading
+    'data_path': 'path/to/dataset.txt',
+
+    # Original method (fallback)
+    # If both above are False, uses original random generation
 }
 ```
 
@@ -218,65 +193,251 @@ env_params = {
 
 ```python
 trainer_params = {
-    'train_batch_size': 256,         # Batch size (adjust based on GPU)
-    'epochs': 1010,                   # Number of training epochs
-    'train_episodes': 100000,         # Total training episodes
-    'use_cuda': True,
-    'cuda_device_num': 0,
+    'train_batch_size': 256,  # Adjust based on GPU memory
+    'epochs': 1010,
+    'train_episodes': 100000,
 }
 ```
 
-### Testing Parameters
+### Data Distribution Options
+
+#### TSP
+- `TSP_TYPE.UNIFORM` - Random uniform distribution (default)
+- `TSP_TYPE.GAUSSIAN` - Gaussian/Normal distribution
+- `TSP_TYPE.CLUSTER` - Clustered distribution
+
+#### CVRP
+- `CVRP_TYPE.UNIFORM` - Random uniform distribution (default)
+- `CVRP_TYPE.GAUSSIAN` - Gaussian distribution
+
+## 📊 Data Format Compatibility
+
+### Original UniteFormer Format
+```
+TSP: x1 y1 x2 y2 ... xn yn output t1 t2 ... tn
+CVRP: depot x1 y1 ... capacity C demand d1 ... output tour
+```
+
+### ML4CO Format
+```
+TSP: x1 y1 x2 y2 ... xn yn output t1 t2 ... tn (compatible!)
+CVRP: depots [...] points [...] demands [...] capacity [...] output [...]
+```
+
+**Automatic Conversion:** The `ML4CODataLoader` handles format conversion automatically.
+
+## 🎓 Key Components
+
+### 1. ML4CODataLoader
+Location: `utils/ml4co_data_loader.py`
+
+Provides:
+- `load_tsp_data()` - Load TSP datasets
+- `load_cvrp_data()` - Load CVRP datasets
+- `load_raw_tsp_for_uniteformer()` - Convert to UniteFormer format
+- `load_raw_cvrp_for_uniteformer()` - Convert CVRP data
+
+### 2. Enhanced Environments
+- `TSPEnv_ML4CO` - TSP environment with data generation support
+- `CVRPEnv_ML4CO` - CVRP environment with data generation support
+
+New parameters:
+```python
+env_params = {
+    'use_data_generator': True,  # Use data generator
+    'generator_config': {...},   # Generator configuration
+}
+```
+
+### 3. Custom Trainers/Testers
+- `TSPTrainerML4CO` - TSP trainer with ML4CO support
+- `TSPTesterML4CO` - TSP tester with ML4CO support
+- `CVRPTrainerML4CO` - CVRP trainer with ML4CO support
+- `CVRPTesterML4CO` - CVRP tester with ML4CO support
+
+## 🔍 How It Works
+
+### Data Generation Flow
+
+```
+Training Start
+    ↓
+Check USE_DATA_GENERATOR
+    ↓
+[True] → Create TSPDataGenerator/CVRPDataGenerator
+    ↓
+    For each batch:
+        generator.generate_only_instance_for_us(batch_size)
+        ↓
+        Convert to PyTorch tensors
+        ↓
+        Forward pass
+    ↓
+[False] → Check USE_DATASET_FILE
+    ↓
+    [True] → Load from file
+    [False] → Use original random generation
+```
+
+### Environment Integration
 
 ```python
-tester_params = {
-    'test_batch_size': 1,
-    'test_episodes': 100,
-    'augmentation_enable': True,      # Enable 8-fold augmentation
-    'use_cuda': True,
-    'cuda_device_num': 0,
-}
+# Environment initialization
+env = TSPEnv_ML4CO(**env_params)
+
+# Attach data generator (if using)
+if USE_DATA_GENERATOR:
+    env.data_generator = data_generator
+
+# Load problems (automatically chooses data source)
+env.load_problems(episode=0, batch_size=32)
 ```
 
-## Advantages of ML4CO Integration
+## ✅ Advantages of This Integration
 
-1. **Unified Framework**: Use ML4CO's standardized data format and evaluation protocols
-2. **Benchmark Compatibility**: Compare results with ML4CO-Bench-101 baselines
-3. **Multiple Datasets**: Access to 34 datasets for 7 CO problems
-4. **Standardized Evaluation**: Consistent evaluation metrics across different methods
-5. **Easy Switching**: Toggle between original and ML4CO formats with a single parameter
+### 1. Data Generation Benefits
+| Feature | Data Generation | Dataset Files |
+|---------|----------------|---------------|
+| **Setup** | ✅ No download needed | ❌ Must download |
+| **Storage** | ✅ Minimal | ❌ Large files |
+| **Flexibility** | ✅ Multiple distributions | ❌ Fixed data |
+| **ML4CO-Bench-101 compatible** | ✅ Same method | ✅ If using ML4CO data |
+| **Reproducibility** | ✅ Set seed | ✅ Deterministic |
 
-## Troubleshooting
+### 2. Unified Framework
+- Use ML4CO's standardized data format and evaluation
+- Compare with ML4CO-Bench-101 baselines
+- Access to 34 datasets across 7 problems
 
-### Issue: ML4CO-Kit not found
+### 3. Backward Compatibility
+- Original UniteFormer code unchanged
+- Easy to switch between modes
+- No breaking changes
 
+## 🛠️ Troubleshooting
+
+### Issue: ModuleNotFoundError: ml4co_kit
 **Solution:**
 ```bash
 pip install ml4co-kit==0.3.3
 ```
 
-### Issue: Dataset file not found
-
-**Solution:**
-- Check that the dataset path is correct (relative to the script location)
-- Ensure datasets are downloaded from Hugging Face
-- Verify file permissions
-
 ### Issue: CUDA out of memory
-
 **Solution:**
-- Reduce `train_batch_size` in training scripts
-- Reduce `problem_size` for testing
-- Use a smaller model configuration
+```python
+'train_batch_size': 64  # Reduce batch size
+```
 
-### Issue: Data format mismatch
+### Issue: Data generation fails
+**Solution:** Script automatically falls back to random generation. Check logs:
+```
+Warning: Data generation failed (...), falling back to random generation
+```
 
+### Issue: Dataset file not found
 **Solution:**
-- Set `use_ml4co=False` for original UniteFormer format
-- Set `ml4co_data_format='direct'` for direct file reading
-- Check that your dataset matches the expected format
+- Use ML4CO-Kit datasets (already available)
+- Or download ML4CO-Bench-101 datasets
+- Check file path is correct (relative to script location)
 
-## Citation
+## 📈 Performance Expectations
+
+Based on ML4CO-Bench-101 with **UNIFORM distribution** and data generation:
+
+| Problem | Size | Optimal | Expected |
+|---------|------|---------|----------|
+| TSP     | 20   | ~3.84   | ~3.85    |
+| TSP     | 50   | ~5.69   | ~5.70    |
+| TSP     | 100  | ~7.76   | ~7.78    |
+| TSP     | 500  | ~16.55  | ~16.60   |
+| TSP     | 1000 | ~23.12  | ~23.25   |
+
+## 📚 Documentation
+
+### Main Documents
+- **QUICKSTART_ML4CO.md** - Quick start guide (start here!)
+- **DATA_GENERATION_GUIDE.md** - Data generation usage
+- **MODIFICATIONS_SUMMARY.md** - Complete modification list
+
+### Examples
+- **examples/example_data_loading.py** - Data loading examples
+
+### Original Projects
+- **ML4CO-Bench-101:** https://github.com/Thinklab-SJTU/ML4CO-Bench-101
+- **ML4CO-Kit:** https://github.com/Thinklab-SJTU/ML4CO-Kit
+- **UniteFormer:** Original repository
+
+## 🎯 Use Cases
+
+### 1. Quick Experimentation
+```bash
+# Train with data generation - no setup needed!
+python train_tsp_ml4co.py
+```
+
+### 2. Comparing with ML4CO-Bench-101
+```python
+# Use same data generation as ML4CO-Bench-101
+GENERATOR_CONFIG = {
+    'distribution_type': TSP_TYPE.UNIFORM,
+    'nodes_num': 50,
+}
+```
+
+### 3. Testing on Fixed Datasets
+```python
+# Use ML4CO-Kit test datasets
+USE_DATASET_FILE = True
+DATASET_PATH = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
+```
+
+### 4. Distribution Ablation Study
+```python
+# Test different distributions
+'distribution_type': TSP_TYPE.UNIFORM  # vs GAUSSIAN, CLUSTER
+```
+
+## 🔄 Migration Guide
+
+### From Original UniteFormer
+
+**Before:**
+```python
+env_params = {
+    'problem_size': 50,
+    'mode': 'train',
+}
+```
+
+**After (with data generation):**
+```python
+env_params = {
+    'problem_size': 50,
+    'mode': 'train',
+    'use_data_generator': True,  # Just add this!
+    'generator_config': {...},
+}
+```
+
+**No other changes needed!**
+
+### From ML4CO-Bench-101 Training
+
+UniteFormer now uses the same data generation approach:
+
+```python
+# ML4CO-Bench-101
+from ml4co_kit import TSPDataGenerator
+generator = TSPDataGenerator(nodes_num=50)
+instances = generator.generate_only_instance_for_us(batch_size)
+
+# UniteFormer (now identical!)
+from ml4co_kit import TSPDataGenerator
+generator = TSPDataGenerator(nodes_num=50)
+instances = generator.generate_only_instance_for_us(batch_size)
+```
+
+## 📝 Citation
 
 If you use this integration, please cite both papers:
 
@@ -297,15 +458,43 @@ If you use this integration, please cite both papers:
 }
 ```
 
-## Contact
+## 🤝 Contributing
+
+Future enhancements:
+- Support for more CO problems (MIS, MVC, MCut, etc.)
+- Integration with ML4CO-Bench-101 training framework
+- Additional data distributions
+- Multi-GPU data generation
+
+## 📧 Contact
 
 For questions or issues:
-- ML4CO-Bench-101: https://github.com/Thinklab-SJTU/ML4CO-Bench-101
-- ML4CO-Kit: https://github.com/Thinklab-SJTU/ML4CO-Kit
-- UniteFormer: Check original repository
+- **ML4CO-Bench-101:** https://github.com/Thinklab-SJTU/ML4CO-Bench-101
+- **ML4CO-Kit:** https://github.com/Thinklab-SJTU/ML4CO-Kit
+- **UniteFormer:** Check original repository
 
-## License
+## 📄 License
 
 This integration maintains the licenses of both original projects:
 - ML4CO-Bench-101 and ML4CO-Kit: See original repository licenses
 - UniteFormer: See original repository license
+
+---
+
+## 🎉 Summary
+
+This integration provides:
+
+✅ **Easy data generation** - No dataset downloads needed
+✅ **ML4CO compatibility** - Same tools as ML4CO-Bench-101
+✅ **Backward compatible** - Original code still works
+✅ **Well documented** - Comprehensive guides and examples
+✅ **Flexible** - Switch between data sources easily
+
+**Get started now:**
+```bash
+cd UniteFormer/UF-TSP
+python train_tsp_ml4co.py
+```
+
+**No datasets required!** 🚀

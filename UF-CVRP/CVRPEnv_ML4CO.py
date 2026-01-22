@@ -69,6 +69,11 @@ class CVRPEnvML4CO:
         self.optimal_label = env_params.get('optimal_label', None)
         self.use_ml4co = env_params.get('use_ml4co', False)
 
+        # Data generation support
+        self.use_data_generator = env_params.get('use_data_generator', False)
+        self.generator_config = env_params.get('generator_config', None)
+        self.data_generator = None  # Will be attached externally if needed
+
         self.raw_pkl_data = None
 
         # ML4CO specific
@@ -135,7 +140,27 @@ class CVRPEnvML4CO:
         self.batch_size = batch_size
 
         if self.mode == 'train':
-            depot_xy, node_xy, node_demand = get_random_problems(batch_size, self.problem_size)
+            # Training: Generate problems
+            if self.use_data_generator and self.data_generator is not None:
+                # Use ML4CO-Kit's CVRPDataGenerator
+                try:
+                    # Generate instances
+                    instances = self.data_generator.generate_only_instance_for_us(batch_size)
+                    # instances format: (depot_xy, node_xy, node_demand, capacity)
+                    depot_xy = torch.tensor(instances[0], dtype=torch.float32).unsqueeze(1)  # (B, 1, 2)
+                    node_xy = torch.tensor(instances[1], dtype=torch.float32)  # (B, V, 2)
+                    node_demand = torch.tensor(instances[2], dtype=torch.float32)  # (B, V)
+
+                    # Normalize demand by capacity
+                    capacity = instances[3] if len(instances) > 3 else self.generator_config.get('capacity', 40.0)
+                    if isinstance(capacity, (int, float)):
+                        node_demand = node_demand / capacity
+                except Exception as e:
+                    print(f"Warning: Data generation failed ({e}), falling back to random generation")
+                    depot_xy, node_xy, node_demand = get_random_problems(batch_size, self.problem_size)
+            else:
+                # Use original random problem generation
+                depot_xy, node_xy, node_demand = get_random_problems(batch_size, self.problem_size)
         else:
             # Testing/Validation mode
             if self.use_ml4co and self.ml4co_loader is not None:
