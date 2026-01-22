@@ -97,7 +97,7 @@ class TSPTrainer:
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
                                                self.result_log, labels=['train_loss'])
 
-            if all_done or (epoch % model_save_interval) == 0 or epoch = train_epoch:   
+            if all_done or (epoch % model_save_interval) == 0 or epoch == train_epoch:   
                 self.logger.info("Saving trained_model")
                 checkpoint_dict = {
                     'epoch': epoch,
