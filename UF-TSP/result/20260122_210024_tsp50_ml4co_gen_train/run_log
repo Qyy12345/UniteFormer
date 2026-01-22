@@ -22,3 +22,6 @@
 [2026-01-22 20:08:36] TSPTrainer.py(159) : Epoch   1: Train (100%)  Score: 7.0315,  Loss: -2.4889
 [2026-01-22 20:08:36] TSPTrainer.py(85) : Epoch   1/1010: Time Est.: Elapsed[8.09m], Remain[136.10h]
 [2026-01-22 20:08:36] TSPTrainer.py(73) : =================================================================
+[2026-01-22 20:15:44] TSPTrainer.py(159) : Epoch   2: Train (100%)  Score: 6.2375,  Loss: -1.4724
+[2026-01-22 20:15:44] TSPTrainer.py(85) : Epoch   2/1010: Time Est.: Elapsed[15.21m], Remain[127.78h]
+[2026-01-22 20:15:44] TSPTrainer.py(93) : Saving log_image

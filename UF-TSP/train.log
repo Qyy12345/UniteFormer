@@ -39,3 +39,18 @@ Epochs: 1010
 [2026-01-22 20:08:36] TSPTrainer.py(159) : Epoch   1: Train (100%)  Score: 7.0315,  Loss: -2.4889
 [2026-01-22 20:08:36] TSPTrainer.py(85) : Epoch   1/1010: Time Est.: Elapsed[8.09m], Remain[136.10h]
 [2026-01-22 20:08:36] TSPTrainer.py(73) : =================================================================
+[2026-01-22 20:15:44] TSPTrainer.py(159) : Epoch   2: Train (100%)  Score: 6.2375,  Loss: -1.4724
+[2026-01-22 20:15:44] TSPTrainer.py(85) : Epoch   2/1010: Time Est.: Elapsed[15.21m], Remain[127.78h]
+[2026-01-22 20:15:44] TSPTrainer.py(93) : Saving log_image
+Traceback (most recent call last):
+  File "train_tsp_ml4co.py", line 260, in <module>
+    main()
+  File "train_tsp_ml4co.py", line 237, in main
+    trainer.run()
+  File "/data2/user/quyiyang/ML4CO/UniteFormer/UF-TSP/TSPTrainer.py", line 95, in run
+    util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
+  File "/data2/user/quyiyang/ML4CO/UniteFormer/UF-TSP/utils.py", line 244, in util_save_log_image_with_label
+    _build_log_image_plt(img_params, result_log, labels)
+  File "/data2/user/quyiyang/ML4CO/UniteFormer/UF-TSP/utils.py", line 264, in _build_log_image_plt
+    with open(log_image_config_file, 'r') as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/data2/user/quyiyang/ML4CO/UniteFormer/UF-TSP/log_image_style/style_tsp_ml4co.json'
