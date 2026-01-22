@@ -34,3 +34,23 @@
 [2026-01-22 21:06:04] TSPTrainer.py(85) : Epoch   4/1010: Time Est.: Elapsed[30.48m], Remain[127.78h]
 [2026-01-22 21:06:04] TSPTrainer.py(93) : Saving log_image
 [2026-01-22 21:06:04] TSPTrainer.py(73) : =================================================================
+[2026-01-22 21:13:29] TSPTrainer.py(159) : Epoch   5: Train (100%)  Score: 5.9541,  Loss: -0.7534
+[2026-01-22 21:13:29] TSPTrainer.py(85) : Epoch   5/1010: Time Est.: Elapsed[37.90m], Remain[126.96h]
+[2026-01-22 21:13:29] TSPTrainer.py(93) : Saving log_image
+[2026-01-22 21:13:29] TSPTrainer.py(73) : =================================================================
+[2026-01-22 21:20:49] TSPTrainer.py(159) : Epoch   6: Train (100%)  Score: 6.2952,  Loss: -1.4222
+[2026-01-22 21:20:49] TSPTrainer.py(85) : Epoch   6/1010: Time Est.: Elapsed[45.23m], Remain[126.15h]
+[2026-01-22 21:20:49] TSPTrainer.py(93) : Saving log_image
+[2026-01-22 21:20:49] TSPTrainer.py(73) : =================================================================
+[2026-01-22 21:27:47] TSPTrainer.py(159) : Epoch   7: Train (100%)  Score: 6.0943,  Loss: -0.9934
+[2026-01-22 21:27:47] TSPTrainer.py(85) : Epoch   7/1010: Time Est.: Elapsed[52.19m], Remain[124.64h]
+[2026-01-22 21:27:47] TSPTrainer.py(93) : Saving log_image
+[2026-01-22 21:27:47] TSPTrainer.py(73) : =================================================================
+[2026-01-22 21:35:01] TSPTrainer.py(159) : Epoch   8: Train (100%)  Score: 5.8743,  Loss: -0.4725
+[2026-01-22 21:35:01] TSPTrainer.py(85) : Epoch   8/1010: Time Est.: Elapsed[59.43m], Remain[124.07h]
+[2026-01-22 21:35:01] TSPTrainer.py(93) : Saving log_image
+[2026-01-22 21:35:02] TSPTrainer.py(73) : =================================================================
+[2026-01-22 21:42:06] TSPTrainer.py(159) : Epoch   9: Train (100%)  Score: 6.1363,  Loss: -1.0642
+[2026-01-22 21:42:06] TSPTrainer.py(85) : Epoch   9/1010: Time Est.: Elapsed[1.11h], Remain[123.29h]
+[2026-01-22 21:42:06] TSPTrainer.py(93) : Saving log_image
+[2026-01-22 21:42:06] TSPTrainer.py(73) : =================================================================
