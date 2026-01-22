@@ -2,31 +2,22 @@
 
 This guide will help you quickly set up and run UniteFormer with ML4CO data generation capabilities.
 
-## Prerequisites
-
-- Python >= 3.8
-- PyTorch >= 2.0.1
-- CUDA-enabled GPU (recommended)
 
 ## Step 1: Install Dependencies
 
+ML4CO-Kit Dependencies
+&
 ```bash
-# Install ML4CO-Kit (required for data generation)
-pip install ml4co-kit==0.3.3
-
 # Install other dependencies (if not already installed)
-pip install torch>=2.0.1 numpy==1.24.4 matplotlib==3.5.2 tqdm==4.67.1
+pip install numpy==1.24.4 matplotlib==3.5.2 tqdm==4.67.1
 ```
 
-## Step 2: Choose Your Data Source
+## Step 2: determine your Data Source
 
-UniteFormer now supports **three** ways to get training data:
+UniteFormer supports **three** ways to get data(usually A for training and B,C for testing):
 
-### Option A: Data Generation (Recommended for Training) ⭐
-- ✅ **No dataset files needed**
-- ✅ **Dynamic data generation**
-- ✅ **Multiple distributions available**
-- ✅ **Same as ML4CO-Bench-101**
+### Option A: Data Generation (ML4CO generator) 
+- ( **Same as ML4CO-Bench-101**)
 
 ### Option B: Existing Dataset Files
 - Use ML4CO-Kit test datasets
@@ -47,7 +38,7 @@ cd UniteFormer/UF-TSP
 nano test_tsp_ml4co.py
 ```
 
-Update these lines:
+Update these lines(Configuration):
 
 ```python
 # Line ~33: Set problem size
@@ -70,18 +61,16 @@ python test_tsp_ml4co.py
 
 ## Step 4: Train with Data Generation (Recommended)
 
-This is the **easiest way** to train UniteFormer!
-
 ### TSP Training
 
 ```bash
 cd UniteFormer/UF-TSP
 
-# The script is already configured to use data generation
-# Just verify these settings in train_tsp_ml4co.py:
+# Edit test script
+nano test_tsp_ml4co.py
 ```
 
-Configuration in `train_tsp_ml4co.py`:
+Update these lines(Configuration):
 
 ```python
 # Line ~42: Problem size
@@ -92,9 +81,8 @@ USE_DATA_GENERATOR = True
 
 # Line ~47-51: Generator config
 GENERATOR_CONFIG = {
-    'distribution_type': TSP_TYPE.UNIFORM,  # UNIFORM, GAUSSIAN, CLUSTER
+    'data_type': 'uniform',  # Uniform distribution (default)
     'nodes_num': TSP_SIZE,
-    'precision': 'float32',
 }
 
 # Line ~55: Dataset file not needed
@@ -111,9 +99,6 @@ python train_tsp_ml4co.py
 ```bash
 cd UniteFormer/UF-CVRP
 
-# Verify settings in train_cvrp_ml4co.py
-```
-
 Configuration:
 
 ```python
@@ -125,12 +110,11 @@ USE_DATA_GENERATOR = True
 
 # Line ~47-52: Generator config
 GENERATOR_CONFIG = {
-    'distribution_type': CVRP_TYPE.UNIFORM,
+    'distribution_type': CVRP_TYPE.UNIFORM if ML4CO_AVAILABLE else None,
     'nodes_num': CVRP_SIZE,
-    'capacity': 40.0,  # Vehicle capacity
+    'capacity': 40.0,  # Vehicle capacity (will be normalized)
     'precision': 'float32',
 }
-```
 
 Start training:
 ```bash
@@ -177,6 +161,41 @@ MODEL_PATH = "./train_models/tsp_ml4co/epoch-1010.pkl"
 # Run test
 python test_tsp_ml4co.py
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Configuration Quick Reference
 
@@ -225,15 +244,6 @@ train_episodes = 1000
 - `CVRP_TYPE.UNIFORM`: Random uniform distribution (default)
 - `CVRP_TYPE.GAUSSIAN`: Gaussian distribution
 
-## Advantages of Data Generation
-
-| Feature | Data Generation | Dataset Files |
-|---------|----------------|---------------|
-| **Setup** | ✅ No download needed | ❌ Need to download datasets |
-| **Storage** | ✅ Minimal storage | ❌ Large files required |
-| **Flexibility** | ✅ Change distributions easily | ❌ Fixed distribution |
-| **Consistency** | ✅ Same as ML4CO-Bench-101 | ✅ If using ML4CO datasets |
-| **Reproducibility** | ✅ Set random seed | ✅ Deterministic files |
 
 ## Common Issues and Solutions
 
