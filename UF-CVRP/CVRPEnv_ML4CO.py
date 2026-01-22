@@ -165,32 +165,51 @@ class CVRPEnvML4CO:
             # Testing/Validation mode
             if self.use_ml4co and self.ml4co_loader is not None:
                 # Use ML4CO data loader
-                if self.raw_data_nodes is None:
-                    # Load data if not already loaded
-                    ml4co_data = self.ml4co_loader.load_raw_cvrp_for_uniteformer(
-                        self.data_path, num_samples=None
+                try:
+                    if self.raw_data_nodes is None:
+                        # Load data if not already loaded
+                        ml4co_data = self.ml4co_loader.load_raw_cvrp_for_uniteformer(
+                            self.data_path, num_samples=None
+                        )
+                        self.raw_data_nodes = ml4co_data['raw_data_nodes']
+                        self.raw_data_demand = ml4co_data['raw_data_demand']
+                        self.raw_data_capacity = ml4co_data['raw_data_capacity']
+                        self.raw_data_node_flag = ml4co_data['raw_data_node_flag']
+
+                    # Extract batch
+                    self.problems_nodes = self.raw_data_nodes[episode: episode + batch_size]
+                    self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
+                    self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
+                    self.solution = self.raw_data_node_flag[episode: episode + batch_size] if self.raw_data_node_flag is not None else None
+
+                    # Format for UniteFormer
+                    self.problems = torch.cat(
+                        (self.problems_nodes, self.Batch_demand[:, :, None], self.Batch_capacity[:, :, None]),
+                        dim=2
                     )
-                    self.raw_data_nodes = ml4co_data['raw_data_nodes']
-                    self.raw_data_demand = ml4co_data['raw_data_demand']
-                    self.raw_data_capacity = ml4co_data['raw_data_capacity']
-                    self.raw_data_node_flag = ml4co_data['raw_data_node_flag']
 
-                # Extract batch
-                self.problems_nodes = self.raw_data_nodes[episode: episode + batch_size]
-                self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
-                self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
-                self.solution = self.raw_data_node_flag[episode: episode + batch_size] if self.raw_data_node_flag is not None else None
-
-                # Format for UniteFormer
-                self.problems = torch.cat(
-                    (self.problems_nodes, self.Batch_demand[:, :, None], self.Batch_capacity[:, :, None]),
-                    dim=2
-                )
-
-                depot_xy = self.problems_nodes[:, 0, :]
-                depot_xy = depot_xy[:, None, :]
-                node_xy = self.problems_nodes[:, 1:, :]
-                node_demand = self.Batch_demand[:, 1:]
+                    depot_xy = self.problems_nodes[:, 0, :]
+                    depot_xy = depot_xy[:, None, :]
+                    node_xy = self.problems_nodes[:, 1:, :]
+                    node_demand = self.Batch_demand[:, 1:]
+                except (ImportError, Exception) as e:
+                    print(f'Warning: ML4CO loader failed ({e}), falling back to original loader')
+                    # Fall through to original loading method
+                    if self.raw_data_nodes is None:
+                        raise ValueError(f"No data available. Please ensure data file exists: {self.data_path}")
+                    # Use already loaded raw_data
+                    self.problems_nodes = self.raw_data_nodes[episode: episode + batch_size]
+                    self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
+                    self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
+                    self.solution = self.raw_data_node_flag[episode: episode + batch_size]
+                    self.problems = torch.cat(
+                        (self.problems_nodes, self.Batch_demand[:, :, None], self.Batch_capacity[:, :, None]),
+                        dim=2
+                    )
+                    depot_xy = self.problems_nodes[:, 0, :]
+                    depot_xy = depot_xy[:, None, :]
+                    node_xy = self.problems_nodes[:, 1:, :]
+                    node_demand = self.Batch_demand[:, 1:]
 
             else:
                 # Use original loading method

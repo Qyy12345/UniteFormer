@@ -35,17 +35,17 @@ NUM_NEIGHBORS = -1  # -1 for dense
 
 # Dataset Configuration
 USE_ML4CO = True  # Set to True to use ML4CO datasets
-# Use ML4CO-Kit test datasets (default, already available)
-ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp50_uniform_16ins.txt"
-# Alternative ML4CO-Kit datasets:
-# "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp100_uniform_4ins.txt"
-# "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp500_uniform_4ins.txt"
-
-# ML4CO-Bench-101 test datasets (with optimal solutions):
-# "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp50_hgs-1s_10.366.txt"
+# ML4CO-Bench-101 test datasets (with optimal solutions, default):
+ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp50_hgs-1s_10.366.txt"
+# Alternative ML4CO-Bench-101 datasets:
 # "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp100_hgs-20s_15.563.txt"
 # "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp200_hgs-60s_19.630.txt"
 # "../../ML4CO-Bench-101/test_dataset/cvrp/cvrp500_hgs-300s_37.154.txt"
+
+# ML4CO-Kit test datasets:
+# "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp50_uniform_16ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp100_uniform_4ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp500_uniform_4ins.txt"
 
 # Model Configuration
 # Default: Use original pretrained model
@@ -154,16 +154,18 @@ def main():
     print(f"Data Augmentation: {tester_params['augmentation_enable']}")
     print("="*80 + "\n")
 
-    tester.run()
+    # Run testing and get results
+    optimal_reward, no_aug_score, aug_score, gap, gap_aug = tester.run()
 
     # Print results summary
     print("\n" + "="*80)
     print("Testing Results Summary")
     print("="*80)
-    print(f"Average cost: {tester.avg_score:.4f}")
-    print(f"Best cost: {tester.best_score:.4f}")
-    if tester.avg_gap is not None:
-        print(f"Average gap: {tester.avg_gap:.2f}%")
+    print(f"Optimal (Best) cost: {optimal_reward:.4f}")
+    print(f"Average cost (No Aug): {no_aug_score:.4f}")
+    print(f"Average cost (With Aug): {aug_score:.4f}")
+    print(f"Gap (No Aug): {gap:.4f}%")
+    print(f"Gap (With Aug): {gap_aug:.4f}%")
     print("="*80 + "\n")
 
 

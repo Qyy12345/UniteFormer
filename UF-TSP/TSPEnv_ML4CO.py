@@ -160,12 +160,15 @@ class TSPEnvML4CO:
 
         if self.use_ml4co and self.ml4co_loader is not None:
             # Use ML4CO loader
-            self.raw_data_nodes, self.raw_data_tours = \
-                self.ml4co_loader.load_raw_tsp_for_uniteformer(
-                    self.data_path, num_samples=episode
-                )
-            print(f'load raw dataset done! Loaded {len(self.raw_data_nodes)} samples')
-            return
+            try:
+                self.raw_data_nodes, self.raw_data_tours = \
+                    self.ml4co_loader.load_raw_tsp_for_uniteformer(
+                        self.data_path, num_samples=episode
+                    )
+                print(f'load raw dataset done! Loaded {len(self.raw_data_nodes)} samples')
+                return
+            except (ImportError, Exception) as e:
+                print(f'Warning: ML4CO loader failed ({e}), falling back to original loader')
 
         # Original loading method
         self.raw_data_nodes = []

@@ -35,19 +35,19 @@ NUM_NEIGHBORS = -1  # -1 for dense
 
 # Dataset Configuration
 USE_ML4CO = True  # Set to True to use ML4CO datasets
-# Use ML4CO-Kit test datasets (default, already available)
-ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
-# Alternative ML4CO-Kit datasets:
-# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp20_uniform_16ins.txt"
-# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp100_uniform_4ins.txt"
-# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp500_uniform_4ins.txt"
-
-# ML4CO-Bench-101 test datasets (with optimal solutions):
-# "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+# ML4CO-Bench-101 test datasets (with optimal solutions, default):
+ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+# Alternative ML4CO-Bench-101 datasets:
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp20_concorde_3.839.txt"
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp100_concorde_7.756.txt"
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp500_concorde_16.546.txt"
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp1000_concorde_23.118.txt"
+
+# ML4CO-Kit test datasets:
+# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp50_uniform_16ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp20_uniform_16ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp100_uniform_4ins.txt"
+# "../../ML4CO-Kit/test_dataset/routing/tsp/wrapper/tsp500_uniform_4ins.txt"
 
 # Model Configuration
 # Default: Use original pretrained model
@@ -156,16 +156,18 @@ def main():
     print(f"Data Augmentation: {tester_params['augmentation_enable']}")
     print("="*80 + "\n")
 
-    tester.run()
+    # Run testing and get results
+    optimal_reward, no_aug_score, aug_score, gap, gap_aug = tester.run()
 
     # Print results summary
     print("\n" + "="*80)
     print("Testing Results Summary")
     print("="*80)
-    print(f"Average tour length: {tester.avg_score:.4f}")
-    print(f"Best tour length: {tester.best_score:.4f}")
-    if tester.avg_gap is not None:
-        print(f"Average gap: {tester.avg_gap:.2f}%")
+    print(f"Optimal (Best) tour length: {optimal_reward:.4f}")
+    print(f"Average tour length (No Aug): {no_aug_score:.4f}")
+    print(f"Average tour length (With Aug): {aug_score:.4f}")
+    print(f"Gap (No Aug): {gap:.4f}%")
+    print(f"Gap (With Aug): {gap_aug:.4f}%")
     print("="*80 + "\n")
 
 

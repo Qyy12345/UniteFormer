@@ -32,9 +32,8 @@ class ML4CODataLoader:
 
         # Try to import ml4co_kit
         try:
-            from ml4co_kit import TSPWrapper, CVRPWrapper
-            self.TSPWrapper = TSPWrapper
-            self.CVRPWrapper = CVRPWrapper
+            import ml4co_kit
+            self.ml4co_kit = ml4co_kit
             self.ml4co_available = True
         except ImportError:
             print("Warning: ml4co_kit not available. Install with: pip install ml4co-kit")
@@ -55,37 +54,38 @@ class ML4CODataLoader:
         if not self.ml4co_available:
             raise ImportError("ml4co_kit is required to load ML4CO datasets")
 
-        tsp_wrapper = self.TSPWrapper(precision=self.precision)
+        # Use TSPUniformDataset to load TSP data
+        try:
+            dataset = self.ml4co_kit.TSPUniformDataset(
+                file_path=file_path,
+                num_nodes=None,  # Auto-detect from file
+                preload=True
+            )
 
-        # Load data from file
-        tsp_wrapper.from_txt(
-            file_path=file_path,
-            ref=True,
-            overwrite=True,
-            show_time=True
-        )
+            nodes_list = []
+            solutions_list = []
 
-        # Extract nodes and solutions
-        nodes_list = []
-        solutions_list = []
+            # Extract data from dataset
+            for i in range(len(dataset)):
+                instance = dataset[i]
+                nodes_list.append(instance.nodes)
+                if hasattr(instance, 'solution') and instance.solution is not None:
+                    solutions_list.append(instance.solution)
 
-        for task in tsp_wrapper.task_list:
-            # Get nodes from task
-            nodes = task.nodes  # Shape: (num_nodes, 2)
-            nodes_list.append(nodes)
+            # Convert to tensors
+            if len(nodes_list) > 0:
+                nodes_tensor = torch.tensor(np.array(nodes_list), dtype=torch.float32)
+            else:
+                nodes_tensor = torch.empty((0, 0, 2), dtype=torch.float32)
 
-            # Get solution if available
-            if task.ref_sol is not None:
-                solutions_list.append(task.ref_sol)
+            solutions_tensor = None
+            if len(solutions_list) > 0:
+                solutions_tensor = torch.tensor(np.array(solutions_list), dtype=torch.long)
 
-        # Convert to tensors
-        nodes_tensor = torch.tensor(np.array(nodes_list), dtype=torch.float32)
+            return nodes_tensor, solutions_tensor
 
-        solutions_tensor = None
-        if solutions_list:
-            solutions_tensor = torch.tensor(np.array(solutions_list), dtype=torch.long)
-
-        return nodes_tensor, solutions_tensor
+        except Exception as e:
+            raise RuntimeError(f"Failed to load TSP data from {file_path}: {e}")
 
     def load_cvrp_data(self, file_path: str) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """
@@ -105,52 +105,45 @@ class ML4CODataLoader:
         if not self.ml4co_available:
             raise ImportError("ml4co_kit is required to load ML4CO datasets")
 
-        cvrp_wrapper = self.CVRPWrapper(precision=self.precision)
+        # Use CVRPUniformDataset to load CVRP data
+        try:
+            dataset = self.ml4co_kit.CVRPUniformDataset(
+                file_path=file_path,
+                num_nodes=None,  # Auto-detect from file
+                preload=True
+            )
 
-        # Load data from file
-        cvrp_wrapper.from_txt(
-            file_path=file_path,
-            ref=True,
-            overwrite=True,
-            show_time=True
-        )
+            depot_list = []
+            node_xy_list = []
+            demand_list = []
+            capacity_list = []
+            solutions_list = []
 
-        # Extract data
-        depot_list = []
-        node_xy_list = []
-        demand_list = []
-        capacity_list = []
-        solutions_list = []
+            # Extract data from dataset
+            for i in range(len(dataset)):
+                instance = dataset[i]
+                depot_list.append(instance.depot_xy)
+                node_xy_list.append(instance.node_xy)
+                demand_list.append(instance.demand)
+                capacity_list.append(instance.capacity)
 
-        for task in cvrp_wrapper.task_list:
-            # Get depot and nodes from task
-            depot = task.depot_xy  # Shape: (1, 2)
-            nodes = task.node_xy  # Shape: (num_nodes, 2)
-            demand = task.demand  # Shape: (num_nodes + 1,) includes depot
-            capacity = task.capacity  # Scalar
+                if hasattr(instance, 'solution') and instance.solution is not None:
+                    solutions_list.append(instance.solution)
 
-            depot_list.append(depot)
-            node_xy_list.append(nodes[1:])  # Exclude depot from nodes
-            demand_list.append(demand[1:])  # Exclude depot demand
-            capacity_list.append(capacity)
+            # Convert to tensors
+            depot_tensor = torch.tensor(np.array(depot_list), dtype=torch.float32)
+            node_xy_tensor = torch.tensor(np.array(node_xy_list), dtype=torch.float32)
+            demand_tensor = torch.tensor(np.array(demand_list), dtype=torch.float32)
+            capacity_tensor = torch.tensor(np.array(capacity_list), dtype=torch.float32)
 
-            # Get solution if available
-            if task.ref_sol is not None:
-                solutions_list.append(task.ref_sol)
+            solutions_tensor = None
+            if len(solutions_list) > 0:
+                solutions_tensor = torch.tensor(np.array(solutions_list), dtype=torch.long)
 
-        # Convert to tensors
-        depot_tensor = torch.tensor(np.array(depot_list), dtype=torch.float32)
-        node_xy_tensor = torch.tensor(np.array(node_xy_list), dtype=torch.float32)
-        demand_tensor = torch.tensor(np.array(demand_list), dtype=torch.float32)
-        capacity_tensor = torch.tensor(np.array(capacity_list), dtype=torch.float32)
+            return depot_tensor, node_xy_tensor, demand_tensor, capacity_tensor, solutions_tensor
 
-        solutions_tensor = None
-        if solutions_list:
-            # Convert solutions to the format expected by UniteFormer
-            # ML4CO solutions might need conversion
-            solutions_tensor = self._convert_cvrp_solutions(solutions_list)
-
-        return depot_tensor, node_xy_tensor, demand_tensor, capacity_tensor, solutions_tensor
+        except Exception as e:
+            raise RuntimeError(f"Failed to load CVRP data from {file_path}: {e}")
 
     def _convert_cvrp_solutions(self, solutions_list):
         """Convert CVRP solutions to UniteFormer format."""
