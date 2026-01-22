@@ -7,7 +7,7 @@ This module extends the original TSPEnv to support loading and using ML4CO datas
 from dataclasses import dataclass
 import torch
 from TSProblemDef import get_random_problems, get_edge_node_problems, augment_xy_data_by_8_fold
-from torch.autograd import tqdm
+from tqdm import tqdm
 import sys
 import os
 
