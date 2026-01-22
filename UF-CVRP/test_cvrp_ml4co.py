@@ -40,8 +40,10 @@ ML4CO_TEST_DATASET = "data/cvrp50_test_instances.pkl"
 # ML4CO_TEST_DATASET = "../ML4CO-Bench-101/test_dataset/cvrp/cvrp50.txt"
 
 # Model Configuration
-MODEL_PATH = "./train_models/cvrp50/epoch-1010.pkl"
-# MODEL_PATH = "./train_models/cvrp_ml4co/epoch-1010.pkl"
+# This path matches the training code (train_cvrp_ml4co.py saves to ./train_models/cvrp_ml4co/)
+MODEL_PATH = "./train_models/cvrp_ml4co/epoch-1010.pkl"  # Path to trained model (after training with ML4CO)
+# Alternative: Use original pretrained model
+# MODEL_PATH = "./train_models/cvrp50/epoch-1010.pkl"  # Original pretrained model
 
 # Testing Parameters
 env_params = {
