@@ -49,13 +49,13 @@ ML4CO_TEST_DATASET = "../../ML4CO-Kit/test_dataset/routing/cvrp/wrapper/cvrp50_u
 
 # Model Configuration
 # Default: Use original pretrained model
-MODEL_PATH = "./train_models/cvrp50/checkpoint-1010.pt"  # Original pretrained model (cvrp50)
+MODEL_PATH = "./train_models/cvrp50"  # Original pretrained model (cvrp50)
 
 # Alternative: ML4CO fine-tuned models (trained with ML4CO datasets)
 # MODEL_PATH = "./train_models/cvrp_ml4co/epoch-1010.pkl"  # ML4CO fine-tuned model
 
 # Other original pretrained model versions:
-# MODEL_PATH = "./train_models/cvrp100/checkpoint-1010.pt"  # Original pretrained model (cvrp100)
+# MODEL_PATH = "./train_models/cvrp100"  # Original pretrained model (cvrp100)
 
 # Testing Parameters
 env_params = {
@@ -87,6 +87,8 @@ model_params = {
 }
 
 tester_params = {
+    'xe_choice': 0,  # 0: edge, 1: node, 2: edge + node
+    'aug_factor': 8,  # Augmentation factor for 8-fold data augmentation
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
     'test_episodes': 100,  # Number of test episodes
@@ -143,7 +145,7 @@ def main():
     )
 
     print("\n" + "="*80)
-    print(f"Testing UniteFormer on ML4CO CVRP{cvrp_size} Dataset")
+    print(f"Testing UniteFormer on ML4CO CVRP{CVRP_SIZE} Dataset")
     print("="*80)
     print(f"Problem Size: {CVRP_SIZE}")
     print(f"Dataset Path: {ML4CO_TEST_DATASET}")
