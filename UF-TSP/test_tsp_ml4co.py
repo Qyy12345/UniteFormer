@@ -31,16 +31,16 @@ from TSPEnv_ML4CO import TSPEnvML4CO
 # Configuration for ML4CO Dataset Testing
 
 # Problem Configuration
-TSP_SIZE = 50  # Options: 20, 50, 100, 500, 1000
+TSP_SIZE = 100  # Options: 20, 50, 100, 500, 1000
 NUM_NEIGHBORS = -1  # -1 for dense
 
 # Dataset Configuration
 USE_ML4CO = True  # Set to True to use ML4CO datasets
 # ML4CO-Bench-101 test datasets (with optimal solutions, default):
-ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
+ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/tsp/tsp100_concorde_7.756.txt"
 # Alternative ML4CO-Bench-101 datasets:
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp20_concorde_3.839.txt"
-# "../../ML4CO-Bench-101/test_dataset/tsp/tsp100_concorde_7.756.txt"
+# "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.688.txt"
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp500_concorde_16.546.txt"
 # "../../ML4CO-Bench-101/test_dataset/tsp/tsp1000_concorde_23.118.txt"
 
@@ -52,7 +52,7 @@ ML4CO_TEST_DATASET = "../../ML4CO-Bench-101/test_dataset/tsp/tsp50_concorde_5.68
 
 # Model Configuration
 # Default: Use original pretrained model
-MODEL_PATH = "./train_models/tsp50"  # Original pretrained model directory
+MODEL_PATH = "./train_models/tsp100"  # Original pretrained model directory
 
 # Alternative: ML4CO fine-tuned models (trained with ML4CO datasets)
 # MODEL_PATH = "./train_models/tsp_ml4co/epoch-1010.pkl"  # ML4CO fine-tuned model

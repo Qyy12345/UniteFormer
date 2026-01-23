@@ -242,6 +242,11 @@ class ML4CODataLoader:
         demand_tensor = torch.tensor(np.array(demand_list), dtype=torch.float32)  # (N, V)
         capacity_tensor = torch.tensor(np.array(capacity_list), dtype=torch.float32)  # (N,)
 
+        # Normalize demand by capacity for UniteFormer
+        # UniteFormer expects demand to be normalized to [0, 1] range
+        for i in range(len(demand_tensor)):
+            demand_tensor[i] = demand_tensor[i] / capacity_tensor[i]
+
         solutions_tensor = None
         if len(solutions_list) > 0:
             # Convert tour to node_flag format (2-column format for UniteFormer)

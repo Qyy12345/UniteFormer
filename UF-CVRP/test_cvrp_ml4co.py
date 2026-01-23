@@ -21,6 +21,7 @@ sys.path.insert(0, "../..")  # for utils
 ##########################################################################################
 # import
 import logging
+import torch
 from utils import create_logger
 from CVRPTester import CVRPTester as Tester
 
@@ -66,6 +67,7 @@ env_params = {
     'num_neighbors': NUM_NEIGHBORS,
     'data_path': ML4CO_TEST_DATASET,
     'use_ml4co': USE_ML4CO,  # Enable ML4CO dataset support
+    'ml4co_data_format': 'wrapper',  # ML4CO data format
     'optimal_label': None,  # Optional: provide optimal values if available
 }
 
@@ -92,7 +94,7 @@ tester_params = {
     'aug_factor': 8,  # Augmentation factor for 8-fold data augmentation
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'test_episodes': 100,  # Number of test episodes
+    'test_episodes': 1028,  # Number of test episodes
     'test_batch_size': 1,  # Batch size for testing
     'augmentation_enable': True,  # Enable 8-fold data augmentation
     'model_load': {
@@ -119,20 +121,25 @@ class CVRPTesterML4CO(Tester):
         from CVRPModel import CVRPModel
         from CVRPEnv_ML4CO import CVRPEnvML4CO
 
-        # Call parent init first to set up device and load checkpoint
+        # Initialize environment with ML4CO support
+        ml4co_env = CVRPEnvML4CO(**env_params)
+
+        # Initialize model
+        ml4co_model = CVRPModel(**model_params)
+
+        # Call parent init - this will overwrite env and model
         Tester.__init__(self, env_params, model_params, tester_params)
 
-        # Now initialize environment with ML4CO support
-        env = CVRPEnvML4CO(**env_params)
+        # Restore ML4CO environment and model (override parent's Env and Model)
+        self.env = ml4co_env
+        self.model = ml4co_model
 
-        # Initialize model and load checkpoint weights into it
-        model = CVRPModel(**model_params)
-        model.load_state_dict(self.model.state_dict())  # Copy weights from parent's model
-        model.to(self.device)  # Ensure model is on correct device
-
-        # Replace env and model with our custom ones
-        self.env = env
-        self.model = model
+        # Load model checkpoint
+        model_load = tester_params['model_load']
+        checkpoint_fullname = '{path}/checkpoint-{epoch}.pt'.format(**model_load)
+        checkpoint = torch.load(checkpoint_fullname, map_location=self.device)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model.to(self.device)  # Ensure model is on the correct device
 
 
 ##########################################################################################
@@ -142,7 +149,7 @@ def main():
         _set_debug_mode()
 
     create_logger(**logger_params)
-    _print_config()
+    # _print_config()  # Temporarily skip to debug
 
     # Use custom tester with ML4CO support
     tester = CVRPTesterML4CO(
@@ -182,7 +189,7 @@ def main():
 
 def _set_debug_mode():
     global tester_params
-    tester_params['test_episodes'] = 2
+    tester_params['test_episodes'] = 1
     tester_params['test_batch_size'] = 1
 
 
@@ -194,7 +201,10 @@ def _print_config():
     if USE_ML4CO:
         logger.info('ML4CO_TEST_DATASET: {}'.format(ML4CO_TEST_DATASET))
     logger.info('MODEL_PATH: {}'.format(MODEL_PATH))
-    [logger.info(g_key + "{}".format(globals()[g_key])) for g_key in globals().keys() if g_key.endswith('params')]
+    logger.info('env_params{}'.format(env_params))
+    logger.info('model_params{}'.format(model_params))
+    logger.info('tester_params{}'.format(tester_params))
+    logger.info('logger_params{}'.format(logger_params))
 
 
 ##########################################################################################

@@ -182,11 +182,6 @@ class CVRPEnvML4CO:
                     self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
                     self.solution = self.raw_data_node_flag[episode: episode + batch_size] if self.raw_data_node_flag is not None else None
 
-                    # Debug: print dimensions
-                    print(f"DEBUG: problems_nodes.shape={self.problems_nodes.shape}, device={self.problems_nodes.device}")
-                    print(f"DEBUG: Batch_demand.shape={self.Batch_demand.shape}, device={self.Batch_demand.device}")
-                    print(f"DEBUG: Batch_capacity.shape={self.Batch_capacity.shape}, device={self.Batch_capacity.device}")
-
                     # Ensure correct dimensions and device
                     if self.Batch_demand.dim() == 1:
                         # Single sample case, need to add batch dimension
@@ -210,7 +205,6 @@ class CVRPEnvML4CO:
                             self.Batch_capacity = self.Batch_capacity.expand(-1, self.Batch_demand.shape[1])
                     else:
                         # Unexpected dimension, add dimensions as needed
-                        print(f"DEBUG: Unexpected Batch_capacity shape: {self.Batch_capacity.shape}, fixing...")
                         while self.Batch_capacity.dim() < 2:
                             self.Batch_capacity = self.Batch_capacity.unsqueeze(-1)
                         if self.Batch_capacity.shape[1] == 1:
@@ -242,11 +236,6 @@ class CVRPEnvML4CO:
                     self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
                     self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
                     self.solution = self.raw_data_node_flag[episode: episode + batch_size]
-
-                    # Debug: print dimensions
-                    print(f"DEBUG: problems_nodes.shape={self.problems_nodes.shape}, device={self.problems_nodes.device}")
-                    print(f"DEBUG: Batch_demand.shape={self.Batch_demand.shape}, device={self.Batch_demand.device}")
-                    print(f"DEBUG: Batch_capacity.shape={self.Batch_capacity.shape}, device={self.Batch_capacity.device}")
 
                     # Ensure correct dimensions and device
                     if self.Batch_demand.dim() == 1:
@@ -281,11 +270,6 @@ class CVRPEnvML4CO:
                     self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
                     self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
                     self.solution = self.raw_data_node_flag[episode: episode + batch_size]
-
-                    # Debug: print dimensions
-                    print(f"DEBUG: problems_nodes.shape={self.problems_nodes.shape}, device={self.problems_nodes.device}")
-                    print(f"DEBUG: Batch_demand.shape={self.Batch_demand.shape}, device={self.Batch_demand.device}")
-                    print(f"DEBUG: Batch_capacity.shape={self.Batch_capacity.shape}, device={self.Batch_capacity.device}")
 
                     # Ensure correct dimensions and device
                     if self.Batch_demand.dim() == 1:
@@ -332,8 +316,6 @@ class CVRPEnvML4CO:
         self.depot_node_xy = torch.cat((depot_xy, node_xy), dim=1)
         self.x_edges, self.x_edges_values = get_edge_node_problems(self.depot_node_xy, self.num_neighbors)
         # [B, N+1, N+1]; [B, N+1, K]
-        print(f"DEBUG: x_edges.shape={self.x_edges.shape}, device={self.x_edges.device}")
-        print(f"DEBUG: x_edges_values.shape={self.x_edges_values.shape}, device={self.x_edges_values.device}")
 
         if aug_factor > 1:
             self.batch_size = self.batch_size * aug_factor
