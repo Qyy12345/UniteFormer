@@ -1,6 +1,7 @@
 
 import torch
 import os
+import time
 from logging import getLogger
 from CVRPEnv import CVRPEnv as Env
 from CVRPModel import CVRPModel as Model
@@ -45,6 +46,7 @@ class CVRPTester:
         self.model.load_state_dict(checkpoint['model_state_dict'])
         # utility
         self.time_estimator = TimeEstimator()
+        self.inference_times = []  # Track inference time for each batch
 
     def run(self, xe_choice=None):
         self.time_estimator.reset()
@@ -60,10 +62,13 @@ class CVRPTester:
 
         score_AM = AverageMeter()
         aug_score_AM = AverageMeter()
-        optimal_reward_AM = AverageMeter()   
- 
-        if self.tester_params['test_data_load']['enable']:
-            self.env.use_saved_problems(self.tester_params['test_data_load']['filename'], self.device)   
+        optimal_reward_AM = AverageMeter()
+        gap_AM = AverageMeter()  # Track per-instance gap average
+        aug_gap_AM = AverageMeter()  # Track per-instance aug_gap average
+
+        # Check if test_data_load is enabled (optional feature)
+        if 'test_data_load' in self.tester_params and self.tester_params['test_data_load'].get('enable', False):
+            self.env.use_saved_problems(self.tester_params['test_data_load']['filename'], self.device)
 
         episode = 0
         loop_cnt = 0
@@ -71,13 +76,15 @@ class CVRPTester:
             remaining = test_num_episode - episode
             batch_size = min(self.tester_params['test_batch_size'], remaining)
 
-            score, aug_score, optimal_reward = self._test_one_batch(episode, batch_size, xe_choice)   
-            current_gap = (score - optimal_reward) / optimal_reward     
-            aug_current_gap = (aug_score - optimal_reward) / optimal_reward   
+            score, aug_score, optimal_reward = self._test_one_batch(episode, batch_size, xe_choice)
+            current_gap = (score - optimal_reward) / optimal_reward
+            aug_current_gap = (aug_score - optimal_reward) / optimal_reward
 
             score_AM.update(score, batch_size)
             aug_score_AM.update(aug_score, batch_size)
-            optimal_reward_AM.update(optimal_reward, batch_size)  
+            optimal_reward_AM.update(optimal_reward, batch_size)
+            gap_AM.update(current_gap, batch_size)  # Accumulate per-instance gap
+            aug_gap_AM.update(aug_current_gap, batch_size)  # Accumulate per-instance aug_gap
             episode += batch_size
 
             ############################
@@ -101,12 +108,16 @@ class CVRPTester:
                 self.logger.info(" NO-AUG SCORE: {:.4f} ".format(score_AM.avg))
                 self.logger.info(" AUGMENTATION SCORE: {:.4f} ".format(aug_score_AM.avg))
 
-                gap = (score_AM.avg - optimal_reward_AM.avg) / optimal_reward_AM.avg * 100
+                gap = gap_AM.avg * 100  # Average of per-instance gaps
                 self.logger.info(" noAUG-Gap: {:.4f}%".format(gap))
-                gap_aug = (aug_score_AM.avg - optimal_reward_AM.avg) / optimal_reward_AM.avg * 100
+                gap_aug = aug_gap_AM.avg * 100  # Average of per-instance aug_gaps
                 self.logger.info(" AUG-Gap: {:.4f}%".format(gap_aug))
 
-        return optimal_reward_AM.avg, score_AM.avg, aug_score_AM.avg, gap, gap_aug
+        # Calculate average inference time
+        avg_inference_time = sum(self.inference_times) / len(self.inference_times) if self.inference_times else 0
+        total_inference_time = sum(self.inference_times)
+
+        return optimal_reward_AM.avg, score_AM.avg, aug_score_AM.avg, gap, gap_aug, avg_inference_time, total_inference_time
 
 
     def _test_one_batch(self, episode, batch_size, xe_choice):
@@ -122,13 +133,18 @@ class CVRPTester:
         with torch.no_grad():
             self.env.load_problems(episode, batch_size, aug_factor)
             reset_state, _, _ = self.env.reset()
- 
-            x_edges = self.env.x_edges           
-            x_edges_values = self.env.x_edges_values   
- 
-            self.model.pre_forward(reset_state, x_edges, x_edges_values, xe_choice)
+
+            x_edges = self.env.x_edges
+            x_edges_values = self.env.x_edges_values
+
             self.optimal_reward = self.env._get_best_distance(self.env.problems, self.env.solution)
- 
+
+        # Start inference timer (pure model inference time)
+        inference_start_time = time.time()
+
+        with torch.no_grad():
+            self.model.pre_forward(reset_state, x_edges, x_edges_values, xe_choice)
+
         # POMO Rollout
         ###############################################
         state, reward, done = self.env.pre_step()
@@ -146,5 +162,10 @@ class CVRPTester:
         max_aug_pomo_reward, _ = max_pomo_reward.max(dim=0)  # get best results from augmentation
         # shape: (batch,)
         aug_score = -max_aug_pomo_reward.float().mean()  # negative sign to make positive value
+
+        # End inference timer
+        inference_end_time = time.time()
+        inference_time = inference_end_time - inference_start_time
+        self.inference_times.append(inference_time)
 
         return no_aug_score.item(), aug_score.item(), self.optimal_reward.item()  #.mean()

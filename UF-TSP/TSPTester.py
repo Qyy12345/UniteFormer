@@ -1,5 +1,6 @@
 import torch
 import os
+import time
 from logging import getLogger
 from TSPEnv import TSPEnv as Env
 from TSPModel import TSPModel as Model
@@ -46,6 +47,7 @@ class TSPTester:
 
         # utility
         self.time_estimator = TimeEstimator()
+        self.inference_times = []  # Track inference time for each batch
 
     def run(self, xe_choice=None):
         self.env.load_raw_data(self.tester_params['test_episodes'])  
@@ -59,7 +61,9 @@ class TSPTester:
         self.time_estimator.reset()
         score_AM = AverageMeter()
         aug_score_AM = AverageMeter()
-        optimal_reward_AM = AverageMeter()  
+        optimal_reward_AM = AverageMeter()
+        gap_AM = AverageMeter()  # Track per-instance gap average
+        aug_gap_AM = AverageMeter()  # Track per-instance aug_gap average
 
         episode = 0
         loop_cnt = 0
@@ -67,11 +71,13 @@ class TSPTester:
             remaining = test_num_episode - episode
             batch_size = min(self.tester_params['test_batch_size'], remaining)
             score, aug_score, optimal_reward = self._test_one_batch(episode, batch_size, xe_choice)
-            current_gap = (score - optimal_reward) / optimal_reward   
-            aug_current_gap = (aug_score - optimal_reward) / optimal_reward   
+            current_gap = (score - optimal_reward) / optimal_reward
+            aug_current_gap = (aug_score - optimal_reward) / optimal_reward
             score_AM.update(score, batch_size)
             aug_score_AM.update(aug_score, batch_size)
-            optimal_reward_AM.update(optimal_reward, batch_size)   
+            optimal_reward_AM.update(optimal_reward, batch_size)
+            gap_AM.update(current_gap, batch_size)  # Accumulate per-instance gap
+            aug_gap_AM.update(aug_current_gap, batch_size)  # Accumulate per-instance aug_gap
             episode += batch_size
 
             ############################
@@ -98,12 +104,16 @@ class TSPTester:
                 self.logger.info(" NO-AUG SCORE: {:.4f} ".format(score_AM.avg))
                 self.logger.info(" AUGMENTATION SCORE: {:.4f} ".format(aug_score_AM.avg))
 
-                gap = (score_AM.avg - optimal_reward_AM.avg) / optimal_reward_AM.avg * 100
+                gap = gap_AM.avg * 100  # Average of per-instance gaps
                 self.logger.info(" noAUG-Gap: {:.4f}%".format(gap))
-                gap_aug = (aug_score_AM.avg - optimal_reward_AM.avg) / optimal_reward_AM.avg * 100
+                gap_aug = aug_gap_AM.avg * 100  # Average of per-instance aug_gaps
                 self.logger.info(" AUG-Gap: {:.4f}%".format(gap_aug))
 
-        return optimal_reward_AM.avg, score_AM.avg, aug_score_AM.avg, gap, gap_aug
+        # Calculate average inference time
+        avg_inference_time = sum(self.inference_times) / len(self.inference_times) if self.inference_times else 0
+        total_inference_time = sum(self.inference_times)
+
+        return optimal_reward_AM.avg, score_AM.avg, aug_score_AM.avg, gap, gap_aug, avg_inference_time, total_inference_time
 
     def _test_one_batch(self, episode, batch_size, xe_choice):
         # Augmentation
@@ -118,12 +128,17 @@ class TSPTester:
         with torch.no_grad():
             self.env.load_problems(episode, batch_size, aug_factor)
             reset_state, _, _ = self.env.reset()
- 
-            x_edges = self.env.x_edges  
-            x_edges_values = self.env.x_edges_values  
 
+            x_edges = self.env.x_edges
+            x_edges_values = self.env.x_edges_values
+
+            self.optimal_reward = self.env._get_best_distance(batch_size)
+
+        # Start inference timer (pure model inference time)
+        inference_start_time = time.time()
+
+        with torch.no_grad():
             self.model.pre_forward(reset_state, x_edges, x_edges_values, xe_choice)
-            self.optimal_reward = self.env._get_best_distance(batch_size)  
 
         # POMO Rollout
         ###############################################
@@ -132,6 +147,11 @@ class TSPTester:
             selected, _ = self.model(state)
             # shape: (batch, pomo)
             state, reward, done = self.env.step(selected)
+
+        # End inference timer
+        inference_end_time = time.time()
+        inference_time = inference_end_time - inference_start_time
+        self.inference_times.append(inference_time)
 
         # Return
         ###############################################

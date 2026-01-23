@@ -49,8 +49,9 @@ def get_edge_node_problems(depot_node_xy, num_neighbors):
     # Set the diagonal elements to 2 for self-connections
     torch.diagonal(W_batch, dim1=-2, dim2=-1).fill_(2)
 
-    batch_edges = torch.tensor(W_batch, dtype=torch.int)   
-    batch_edges_values = W_val_batch        
+    # Preserve device when converting to int
+    batch_edges = W_batch.to(dtype=torch.int)
+    batch_edges_values = W_val_batch
 
     return batch_edges, batch_edges_values
 

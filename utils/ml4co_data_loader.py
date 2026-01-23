@@ -91,6 +91,8 @@ class ML4CODataLoader:
         """
         Load CVRP data from ML4CO format file.
 
+        Supports both ML4CO-Bench-101 format and ml4co_kit CVRPUniformDataset.
+
         Args:
             file_path: Path to the CVRP data file
 
@@ -102,48 +104,168 @@ class ML4CODataLoader:
                 - capacity: Tensor of shape (num_samples,)
                 - solutions: Tensor of shape (num_samples, num_nodes, 2) or None
         """
-        if not self.ml4co_available:
-            raise ImportError("ml4co_kit is required to load ML4CO datasets")
-
-        # Use CVRPUniformDataset to load CVRP data
+        # First, try to parse as ML4CO-Bench-101 format
         try:
-            dataset = self.ml4co_kit.CVRPUniformDataset(
-                file_path=file_path,
-                num_nodes=None,  # Auto-detect from file
-                preload=True
-            )
-
-            depot_list = []
-            node_xy_list = []
-            demand_list = []
-            capacity_list = []
-            solutions_list = []
-
-            # Extract data from dataset
-            for i in range(len(dataset)):
-                instance = dataset[i]
-                depot_list.append(instance.depot_xy)
-                node_xy_list.append(instance.node_xy)
-                demand_list.append(instance.demand)
-                capacity_list.append(instance.capacity)
-
-                if hasattr(instance, 'solution') and instance.solution is not None:
-                    solutions_list.append(instance.solution)
-
-            # Convert to tensors
-            depot_tensor = torch.tensor(np.array(depot_list), dtype=torch.float32)
-            node_xy_tensor = torch.tensor(np.array(node_xy_list), dtype=torch.float32)
-            demand_tensor = torch.tensor(np.array(demand_list), dtype=torch.float32)
-            capacity_tensor = torch.tensor(np.array(capacity_list), dtype=torch.float32)
-
-            solutions_tensor = None
-            if len(solutions_list) > 0:
-                solutions_tensor = torch.tensor(np.array(solutions_list), dtype=torch.long)
-
-            return depot_tensor, node_xy_tensor, demand_tensor, capacity_tensor, solutions_tensor
-
+            return self._load_cvrp_bench101_format(file_path)
         except Exception as e:
-            raise RuntimeError(f"Failed to load CVRP data from {file_path}: {e}")
+            # Print the actual error for debugging
+            import traceback
+            print(f"Warning: ML4CO-Bench-101 format parsing failed: {e}")
+            traceback.print_exc()
+            pass  # Fall through to ml4co_kit format
+
+        # If ml4co_kit is available, try CVRPUniformDataset
+        if self.ml4co_available:
+            try:
+                dataset = self.ml4co_kit.CVRPUniformDataset(
+                    file_path=file_path,
+                    num_nodes=None,  # Auto-detect from file
+                    preload=True
+                )
+
+                depot_list = []
+                node_xy_list = []
+                demand_list = []
+                capacity_list = []
+                solutions_list = []
+
+                # Extract data from dataset
+                for i in range(len(dataset)):
+                    instance = dataset[i]
+                    depot_list.append(instance.depot_xy)
+                    node_xy_list.append(instance.node_xy)
+                    demand_list.append(instance.demand)
+                    capacity_list.append(instance.capacity)
+
+                    if hasattr(instance, 'solution') and instance.solution is not None:
+                        solutions_list.append(instance.solution)
+
+                # Convert to tensors
+                depot_tensor = torch.tensor(np.array(depot_list), dtype=torch.float32)
+                node_xy_tensor = torch.tensor(np.array(node_xy_list), dtype=torch.float32)
+                demand_tensor = torch.tensor(np.array(demand_list), dtype=torch.float32)
+                capacity_tensor = torch.tensor(np.array(capacity_list), dtype=torch.float32)
+
+                solutions_tensor = None
+                if len(solutions_list) > 0:
+                    solutions_tensor = torch.tensor(np.array(solutions_list), dtype=torch.long)
+
+                return depot_tensor, node_xy_tensor, demand_tensor, capacity_tensor, solutions_tensor
+
+            except Exception as e:
+                print(f"Warning: ml4co_kit CVRPUniformDataset failed: {e}")
+                pass  # Fall through to error
+
+        raise RuntimeError(f"Failed to load CVRP data from {file_path}: Unsupported format")
+
+    def _load_cvrp_bench101_format(self, file_path: str) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+        """
+        Load CVRP data from ML4CO-Bench-101 format file.
+
+        Format: depots <x> <y> points <x1> <y1> <x2> <y2> ... demands <d1> <d2> ... capacity <C> output <tour>
+
+        Args:
+            file_path: Path to the CVRP data file
+
+        Returns:
+            Tuple of (depot_xy, node_xy, node_demand, capacity, solutions)
+        """
+        depot_list = []
+        node_xy_list = []
+        demand_list = []
+        capacity_list = []
+        solutions_list = []
+
+        with open(file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+
+                parts = line.split()
+
+                # Check if this is ML4CO-Bench-101 format
+                if 'depots' not in parts:
+                    raise ValueError(f"Not ML4CO-Bench-101 format: missing 'depots' keyword")
+
+                # Parse depot
+                depot_idx = parts.index('depots')
+                depot_x = float(parts[depot_idx + 1])
+                depot_y = float(parts[depot_idx + 2])
+                depot_list.append([depot_x, depot_y])
+
+                # Parse points (customer nodes)
+                points_idx = parts.index('points')
+                demands_idx = parts.index('demands')
+
+                # Extract customer coordinates
+                points = []
+                idx = points_idx + 1
+                while idx < demands_idx:
+                    x = float(parts[idx])
+                    y = float(parts[idx + 1])
+                    points.append([x, y])
+                    idx += 2
+                node_xy_list.append(points)
+
+                # Parse demands
+                capacity_idx = parts.index('capacity')
+                demands = []
+                idx = demands_idx + 1
+                while idx < capacity_idx:
+                    demands.append(float(parts[idx]))
+                    idx += 1
+                demand_list.append(demands)
+
+                # Parse capacity
+                cap = float(parts[capacity_idx + 1])
+                capacity_list.append(cap)
+
+                # Parse solution (tour) if exists
+                try:
+                    output_idx = parts.index('output')
+                    tour = []
+                    idx = output_idx + 1
+                    while idx < len(parts):
+                        tour.append(int(parts[idx]))
+                        idx += 1
+                    solutions_list.append(tour)
+                except ValueError:
+                    pass  # No solution in this line
+
+        if len(depot_list) == 0:
+            raise ValueError(f"No valid data found in {file_path}")
+
+        # Convert to tensors
+        depot_tensor = torch.tensor(np.array(depot_list), dtype=torch.float32).unsqueeze(1)  # (N, 1, 2)
+        node_xy_tensor = torch.tensor(np.array(node_xy_list), dtype=torch.float32)  # (N, V, 2)
+        demand_tensor = torch.tensor(np.array(demand_list), dtype=torch.float32)  # (N, V)
+        capacity_tensor = torch.tensor(np.array(capacity_list), dtype=torch.float32)  # (N,)
+
+        solutions_tensor = None
+        if len(solutions_list) > 0:
+            # Convert tour to node_flag format (2-column format for UniteFormer)
+            # Format: [visited_order, is_depot_flag]
+            # Since tours have different lengths, store as list of lists
+            node_flag_list = []
+            for tour in solutions_list:
+                # Create a list of [node, depot_flag] pairs
+                # depot_flag: 1 if depot, 0 if customer
+                node_flag = []
+                for node in tour:
+                    if node == 0:
+                        # Depot
+                        node_flag.extend([0, 1])  # UniteFormer uses 0-indexed depot with flag
+                    else:
+                        # Customer (convert to 0-indexed)
+                        node_flag.extend([node - 1, 0])
+                node_flag_list.append(node_flag)
+
+            # Keep as list of lists since tours have different lengths
+            # The CVRP environment will handle this format
+            solutions_tensor = node_flag_list
+
+        return depot_tensor, node_xy_tensor, demand_tensor, capacity_tensor, solutions_tensor
 
     def _convert_cvrp_solutions(self, solutions_list):
         """Convert CVRP solutions to UniteFormer format."""

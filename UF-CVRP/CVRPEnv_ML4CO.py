@@ -176,11 +176,51 @@ class CVRPEnvML4CO:
                         self.raw_data_capacity = ml4co_data['raw_data_capacity']
                         self.raw_data_node_flag = ml4co_data['raw_data_node_flag']
 
-                    # Extract batch
+                    # Extract batch - ensure we maintain batch dimension even for single samples
                     self.problems_nodes = self.raw_data_nodes[episode: episode + batch_size]
                     self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
                     self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
                     self.solution = self.raw_data_node_flag[episode: episode + batch_size] if self.raw_data_node_flag is not None else None
+
+                    # Debug: print dimensions
+                    print(f"DEBUG: problems_nodes.shape={self.problems_nodes.shape}, device={self.problems_nodes.device}")
+                    print(f"DEBUG: Batch_demand.shape={self.Batch_demand.shape}, device={self.Batch_demand.device}")
+                    print(f"DEBUG: Batch_capacity.shape={self.Batch_capacity.shape}, device={self.Batch_capacity.device}")
+
+                    # Ensure correct dimensions and device
+                    if self.Batch_demand.dim() == 1:
+                        # Single sample case, need to add batch dimension
+                        self.problems_nodes = self.problems_nodes.unsqueeze(0)
+                        self.Batch_demand = self.Batch_demand.unsqueeze(0)
+                    if self.Batch_capacity.dim() == 1:
+                        self.Batch_capacity = self.Batch_capacity.unsqueeze(0)
+
+                    # Ensure Batch_capacity is on the same device as Batch_demand
+                    if self.Batch_capacity.device != self.Batch_demand.device:
+                        self.Batch_capacity = self.Batch_capacity.to(self.Batch_demand.device)
+
+                    # Robustly handle Batch_capacity shape
+                    # After unsqueeze, we expect [B, 1], but handle all cases
+                    if self.Batch_capacity.dim() == 2:
+                        if self.Batch_capacity.shape[1] == 1:
+                            # Shape is [B, 1], need to expand to [B, V+1]
+                            self.Batch_capacity = self.Batch_capacity.expand(-1, self.Batch_demand.shape[1])
+                        elif self.Batch_capacity.shape[1] != self.Batch_demand.shape[1]:
+                            # Shape is [B, X] where X != V+1, need to expand
+                            self.Batch_capacity = self.Batch_capacity.expand(-1, self.Batch_demand.shape[1])
+                    else:
+                        # Unexpected dimension, add dimensions as needed
+                        print(f"DEBUG: Unexpected Batch_capacity shape: {self.Batch_capacity.shape}, fixing...")
+                        while self.Batch_capacity.dim() < 2:
+                            self.Batch_capacity = self.Batch_capacity.unsqueeze(-1)
+                        if self.Batch_capacity.shape[1] == 1:
+                            self.Batch_capacity = self.Batch_capacity.expand(-1, self.Batch_demand.shape[1])
+                        elif self.Batch_capacity.shape[1] != self.Batch_demand.shape[1]:
+                            self.Batch_capacity = self.Batch_capacity.expand(-1, self.Batch_demand.shape[1])
+
+                    # Verify shapes before concatenation
+                    assert self.Batch_capacity.shape == self.Batch_demand.shape, \
+                        f"Batch_capacity shape {self.Batch_capacity.shape} must match Batch_demand shape {self.Batch_demand.shape}"
 
                     # Format for UniteFormer
                     self.problems = torch.cat(
@@ -202,6 +242,29 @@ class CVRPEnvML4CO:
                     self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
                     self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
                     self.solution = self.raw_data_node_flag[episode: episode + batch_size]
+
+                    # Debug: print dimensions
+                    print(f"DEBUG: problems_nodes.shape={self.problems_nodes.shape}, device={self.problems_nodes.device}")
+                    print(f"DEBUG: Batch_demand.shape={self.Batch_demand.shape}, device={self.Batch_demand.device}")
+                    print(f"DEBUG: Batch_capacity.shape={self.Batch_capacity.shape}, device={self.Batch_capacity.device}")
+
+                    # Ensure correct dimensions and device
+                    if self.Batch_demand.dim() == 1:
+                        # Single sample case, need to add batch dimension
+                        self.problems_nodes = self.problems_nodes.unsqueeze(0)
+                        self.Batch_demand = self.Batch_demand.unsqueeze(0)
+                    if self.Batch_capacity.dim() == 1:
+                        self.Batch_capacity = self.Batch_capacity.unsqueeze(0)
+
+                    # Ensure Batch_capacity is on the same device as Batch_demand
+                    if self.Batch_capacity.device != self.Batch_demand.device:
+                        self.Batch_capacity = self.Batch_capacity.to(self.Batch_demand.device)
+
+                    # Expand capacity to match demand dimensions
+                    if self.Batch_capacity.dim() == 2 and self.Batch_capacity.shape[1] == 1:
+                        # Shape is [B, 1], need to expand to [B, V+1]
+                        self.Batch_capacity = self.Batch_capacity.expand(-1, self.Batch_demand.shape[1])
+
                     self.problems = torch.cat(
                         (self.problems_nodes, self.Batch_demand[:, :, None], self.Batch_capacity[:, :, None]),
                         dim=2
@@ -218,6 +281,29 @@ class CVRPEnvML4CO:
                     self.Batch_demand = self.raw_data_demand[episode: episode + batch_size]
                     self.Batch_capacity = self.raw_data_capacity[episode: episode + batch_size]
                     self.solution = self.raw_data_node_flag[episode: episode + batch_size]
+
+                    # Debug: print dimensions
+                    print(f"DEBUG: problems_nodes.shape={self.problems_nodes.shape}, device={self.problems_nodes.device}")
+                    print(f"DEBUG: Batch_demand.shape={self.Batch_demand.shape}, device={self.Batch_demand.device}")
+                    print(f"DEBUG: Batch_capacity.shape={self.Batch_capacity.shape}, device={self.Batch_capacity.device}")
+
+                    # Ensure correct dimensions and device
+                    if self.Batch_demand.dim() == 1:
+                        # Single sample case, need to add batch dimension
+                        self.problems_nodes = self.problems_nodes.unsqueeze(0)
+                        self.Batch_demand = self.Batch_demand.unsqueeze(0)
+                    if self.Batch_capacity.dim() == 1:
+                        self.Batch_capacity = self.Batch_capacity.unsqueeze(0)
+
+                    # Ensure Batch_capacity is on the same device as Batch_demand
+                    if self.Batch_capacity.device != self.Batch_demand.device:
+                        self.Batch_capacity = self.Batch_capacity.to(self.Batch_demand.device)
+
+                    # Expand capacity to match demand dimensions
+                    if self.Batch_capacity.dim() == 2 and self.Batch_capacity.shape[1] == 1:
+                        # Shape is [B, 1], need to expand to [B, V+1]
+                        self.Batch_capacity = self.Batch_capacity.expand(-1, self.Batch_demand.shape[1])
+
                     self.problems = torch.cat(
                         (self.problems_nodes, self.Batch_demand[:, :, None], self.Batch_capacity[:, :, None]),
                         dim=2
@@ -246,6 +332,8 @@ class CVRPEnvML4CO:
         self.depot_node_xy = torch.cat((depot_xy, node_xy), dim=1)
         self.x_edges, self.x_edges_values = get_edge_node_problems(self.depot_node_xy, self.num_neighbors)
         # [B, N+1, N+1]; [B, N+1, K]
+        print(f"DEBUG: x_edges.shape={self.x_edges.shape}, device={self.x_edges.device}")
+        print(f"DEBUG: x_edges_values.shape={self.x_edges_values.shape}, device={self.x_edges_values.device}")
 
         if aug_factor > 1:
             self.batch_size = self.batch_size * aug_factor
@@ -389,9 +477,30 @@ class CVRPEnvML4CO:
 
     def _get_best_distance(self, problems_, solution_):
         if self.solution is not None:
+            # Check if solution is a list (ML4CO format) or tensor (original format)
+            if isinstance(solution_, list):
+                # ML4CO format: list of lists, need to convert to tensor
+                # Each solution is a flat list: [node1, flag1, node2, flag2, ...]
+                # Need to pad to consistent length
+                max_len = max(len(sol) for sol in solution_)
+                # Pad with zeros
+                padded_solutions = []
+                for sol in solution_:
+                    padded = sol + [0] * (max_len - len(sol))
+                    padded_solutions.append(padded)
+                solution_tensor = torch.tensor(padded_solutions, dtype=torch.long, device=problems_.device)
+                # Reshape: (B, max_len/2, 2) -> split into pairs
+                solution_tensor = solution_tensor.view(solution_tensor.shape[0], -1, 2)
+                order_node = solution_tensor[:, :, 0].clone()
+                order_flag = solution_tensor[:, :, 1].clone()
+            else:
+                # Original format: tensor
+                problems = problems_[:, :, [0, 1]].clone()
+                order_node = solution_[:, :, 0].clone()
+                order_flag = solution_[:, :, 1].clone()
+
+            # Use all coordinates from problems_ (includes depot and demand)
             problems = problems_[:, :, [0, 1]].clone()
-            order_node = solution_[:, :, 0].clone()
-            order_flag = solution_[:, :, 1].clone()
             travel_distances = self.cal_length(problems, order_node, order_flag).mean()
         else:
             travel_distances = self.optimal_label
@@ -399,8 +508,8 @@ class CVRPEnvML4CO:
 
     def cal_length(self, problems, order_node, order_flag):
         # problems:   [B,V+1,2]
-        # order_node: [B,V]
-        # order_flag: [B,V]
+        # order_node: [B,V] or [B,L] (L can be > V for ML4CO format)
+        # order_flag: [B,V] or [B,L]
         order_node_ = order_node.clone()
         order_flag_ = order_flag.clone()
         index_small = torch.le(order_flag_, 0.5)
@@ -409,15 +518,16 @@ class CVRPEnvML4CO:
         order_flag_[index_bigger] = 0
         roll_node = order_node_.roll(dims=1, shifts=1)
         problem_size = problems.shape[1] - 1
-        order_gathering_index = order_node_.unsqueeze(2).expand(-1, problem_size, 2)
+        tour_length = order_node.shape[1]  # Use actual tour length instead of problem_size
+        order_gathering_index = order_node_.unsqueeze(2).expand(-1, tour_length, 2)
         order_loc = problems.gather(dim=1, index=order_gathering_index)
-        roll_gathering_index = roll_node.unsqueeze(2).expand(-1, problem_size, 2)
+        roll_gathering_index = roll_node.unsqueeze(2).expand(-1, tour_length, 2)
         roll_loc = problems.gather(dim=1, index=roll_gathering_index)
-        flag_gathering_index = order_flag_.unsqueeze(2).expand(-1, problem_size, 2)
+        flag_gathering_index = order_flag_.unsqueeze(2).expand(-1, tour_length, 2)
         flag_loc = problems.gather(dim=1, index=flag_gathering_index)
         order_lengths = ((order_loc - flag_loc) ** 2)
         order_flag_[:,0]=0
-        flag_gathering_index = order_flag_.unsqueeze(2).expand(-1, problem_size, 2)
+        flag_gathering_index = order_flag_.unsqueeze(2).expand(-1, tour_length, 2)
         flag_loc = problems.gather(dim=1, index=flag_gathering_index)
         roll_lengths = ((roll_loc - flag_loc) ** 2)
         length = (order_lengths.sum(2).sqrt() + roll_lengths.sum(2).sqrt()).sum(1)
@@ -429,13 +539,24 @@ class CVRPEnvML4CO:
             tow_col_node_flag = []
             V = int(len(node_flag) / 2)
             for i in range(V):
-                tow_col_node_flag.append([node_flag[i], node_flag[V + i]])
-            return tow_col_node_flag
+                tow_col_nodeflag.append([node_flag[i], node_flag[V + i]])
+            return tow_col_nodeflag
 
-        # If using ML4CO loader, data is already loaded in load_problems
+        # If using ML4CO loader, try to load ML4CO format data
         if self.use_ml4co and self.ml4co_loader is not None:
-            print(f'load raw dataset done! ML4CO format detected')
-            return
+            try:
+                ml4co_data = self.ml4co_loader.load_raw_cvrp_for_uniteformer(
+                    self.data_path, num_samples=episode
+                )
+                self.raw_data_nodes = ml4co_data['raw_data_nodes']
+                self.raw_data_demand = ml4co_data['raw_data_demand']
+                self.raw_data_capacity = ml4co_data['raw_data_capacity']
+                self.raw_data_node_flag = ml4co_data['raw_data_node_flag']
+                print(f'load raw dataset done! Loaded {len(self.raw_data_nodes)} samples (ML4CO format)')
+                return
+            except Exception as e:
+                print(f'Warning: ML4CO loader failed ({e}), falling back to original loader')
+                # Fall through to original loading method
 
         # Original loading method
         if self.env_params['mode'] == 'test':

@@ -12,6 +12,7 @@ CUDA_DEVICE_NUM = 0
 # Path Config
 import os
 import sys
+import time
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, "..")  # for problem_def
@@ -118,14 +119,20 @@ class CVRPTesterML4CO(Tester):
         from CVRPModel import CVRPModel
         from CVRPEnv_ML4CO import CVRPEnvML4CO
 
-        # Initialize environment with ML4CO support
-        self.env = CVRPEnvML4CO(**env_params)
-
-        # Initialize model
-        self.model = CVRPModel(**model_params)
-
-        # Rest of initialization follows parent class
+        # Call parent init first to set up device and load checkpoint
         Tester.__init__(self, env_params, model_params, tester_params)
+
+        # Now initialize environment with ML4CO support
+        env = CVRPEnvML4CO(**env_params)
+
+        # Initialize model and load checkpoint weights into it
+        model = CVRPModel(**model_params)
+        model.load_state_dict(self.model.state_dict())  # Copy weights from parent's model
+        model.to(self.device)  # Ensure model is on correct device
+
+        # Replace env and model with our custom ones
+        self.env = env
+        self.model = model
 
 
 ##########################################################################################
@@ -155,7 +162,7 @@ def main():
     print("="*80 + "\n")
 
     # Run testing and get results
-    optimal_reward, no_aug_score, aug_score, gap, gap_aug = tester.run()
+    optimal_reward, no_aug_score, aug_score, gap, gap_aug, avg_inference_time, total_inference_time = tester.run()
 
     # Print results summary
     print("\n" + "="*80)
@@ -166,6 +173,10 @@ def main():
     print(f"Average cost (With Aug): {aug_score:.4f}")
     print(f"Gap (No Aug): {gap:.4f}%")
     print(f"Gap (With Aug): {gap_aug:.4f}%")
+    print("-" * 80)
+    print(f"Average inference time per batch: {avg_inference_time:.4f} seconds")
+    print(f"Total inference time: {total_inference_time:.2f} seconds ({total_inference_time/60:.2f} minutes)")
+    print(f"Total testing time (including data loading): {tester_params['test_episodes']} episodes")
     print("="*80 + "\n")
 
 

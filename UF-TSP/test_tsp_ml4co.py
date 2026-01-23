@@ -12,6 +12,7 @@ CUDA_DEVICE_NUM = 0
 # Path Config
 import os
 import sys
+import time
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, "..")  # for problem_def
@@ -93,7 +94,7 @@ tester_params = {
     'aug_factor': 8,  # Augmentation factor for 8-fold data augmentation
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'test_episodes': 100,  # Number of test episodes
+    'test_episodes': 1028,  # Number of test episodes
     'test_batch_size': 1,  # Batch size for testing
     'augmentation_enable': True,  # Enable 8-fold data augmentation
     'model_load': {
@@ -157,7 +158,7 @@ def main():
     print("="*80 + "\n")
 
     # Run testing and get results
-    optimal_reward, no_aug_score, aug_score, gap, gap_aug = tester.run()
+    optimal_reward, no_aug_score, aug_score, gap, gap_aug, avg_inference_time, total_inference_time = tester.run()
 
     # Print results summary
     print("\n" + "="*80)
@@ -168,6 +169,10 @@ def main():
     print(f"Average tour length (With Aug): {aug_score:.4f}")
     print(f"Gap (No Aug): {gap:.4f}%")
     print(f"Gap (With Aug): {gap_aug:.4f}%")
+    print("-" * 80)
+    print(f"Average inference time per batch: {avg_inference_time:.4f} seconds")
+    print(f"Total inference time: {total_inference_time:.2f} seconds ({total_inference_time/60:.2f} minutes)")
+    print(f"Total testing time (including data loading): {tester_params['test_episodes']} episodes")
     print("="*80 + "\n")
 
 
